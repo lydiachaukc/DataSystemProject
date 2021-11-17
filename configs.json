@@ -1,0 +1,22 @@
+[
+  {
+    "name": "amazon_google",
+    "task_type": "classification",
+    "vocab": ["0", "1"],
+    "tableA": "data/amazon_google/tableA.csv",
+    "tableB": "data/amazon_google/tableB.csv",
+    "trainset": "data/amazon_google/train.csv",
+    "validset": "data/amazon_google/valid.csv",
+    "testset": "data/amazon_google/test.csv"
+  },
+  {
+    "name": "dirty_amazon_itunes",
+    "task_type": "classification",
+    "vocab": ["0", "1"],
+    "tableA": "data/dirty_amazon_itunes/tableA.csv",
+    "tableB": "data/dirty_amazon_itunes/tableB.csv",
+    "trainset": "data/dirty_amazon_itunes/train.csv",
+    "validset": "data/dirty_amazon_itunes/valid.csv",
+    "testset": "data/dirty_amazon_itunes/test.csv"
+  }
+]
