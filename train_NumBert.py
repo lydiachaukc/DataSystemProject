@@ -24,11 +24,11 @@ if __name__=="__main__":
     parser.add_argument("--task", type=str, default="dirty_amazon_itunes")
     parser.add_argument("--run_id", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=64)
-    #parser.add_argument("--batch_size", type=int, default=12)
+    #parser.add_argument("--batch_size", type=int, default=6)
     parser.add_argument("--max_len", type=int, default=256)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--n_epochs", type=int, default=20)
-    #parser.add_argument("--n_epochs", type=int, default=2)
+    #parser.add_argument("--n_epochs", type=int, default=1)
     parser.add_argument("--finetuning", dest="finetuning", action="store_true")
     parser.add_argument("--save_model", dest="save_model", action="store_true")
     parser.add_argument("--logdir", type=str, default="checkpoints/")
@@ -82,7 +82,8 @@ if __name__=="__main__":
                 epochs=hp.n_epochs,
                 batch_size=hp.batch_size,
                 lm=hp.lm,
-                learning_rate=hp.lr)
+                learning_rate=hp.lr,
+                num_hidden_lyr = 5)
 
     
 # =============================================================================

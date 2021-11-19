@@ -27,7 +27,7 @@ class NumBert(BertForSequenceClassification):
         self.dropout = nn.Dropout(0.5)
         self.classifier = classification_NN(
             inputs_dimension = config.num_input_dimension + config.text_input_dimension,
-            num_hidden_lyr = 2,
+            num_hidden_lyr = config.num_hidden_lyr,
             dropout_prob = 0.5,
             bn = nn.BatchNorm1d(config.num_input_dimension).double()
             )
@@ -62,7 +62,7 @@ class NumBert(BertForSequenceClassification):
         if labels is not None:
             calculate_loss = CrossEntropyLoss(weight = None)
             labels = labels.long()
-            loss = calculate_loss(logits.view(-1),labels.view(-1))
+            loss = calculate_loss(logits.view(-1,2),labels.view(-1))
         else:
             loss=None
         

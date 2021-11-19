@@ -19,20 +19,21 @@ class classification_NN(nn.Module):
         self.dropout = nn.Dropout(dropout_prob)
         
         output_dim = 2 # 0 for unmatch; 1 for match
-        hidden_channels = [inputs_dimension for _ in range(num_hidden_lyr)]
-        self.layer_channels = [inputs_dimension] + hidden_channels + [output_dim]
+        self.layer_channels = list(range(inputs_dimension,output_dim,-1*int((inputs_dimension-output_dim)/(1+num_hidden_lyr))))
+        self.layer_channels += [output_dim]
         
-        self.activation = nn.ReLU()
+        self.activation = nn.ReLU().double()
+        
+        final_layer = nn.Linear(self.layer_channels[-2], self.layer_channels[-1]).double()
+        self.weight_init(final_layer).double()
+                
         self.layers = nn.ModuleList(list(
-            map(self.weight_init, [nn.Linear(self.layer_channels[i], self.layer_channels[i + 1])
+            map(self.weight_init, [nn.Linear(self.layer_channels[i], self.layer_channels[i + 1]).double()
                                     for i in range(len(self.layer_channels) - 2)])))
-        
-        final_layer = nn.Linear(self.layer_channels[-2], self.layer_channels[-1])
-        self.weight_init(final_layer)
         self.layers.append(final_layer)
         self.bn = bn
         if self.bn:
-            self.bn = nn.ModuleList([torch.nn.BatchNorm1d(dim) for dim in self.layer_channels[1:-1]])
+            self.bn = nn.ModuleList([torch.nn.BatchNorm1d(dim).double() for dim in self.layer_channels[1:-1]])
         
     def weight_init(self, m):
         torch.nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain("linear"))
