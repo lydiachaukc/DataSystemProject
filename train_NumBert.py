@@ -15,10 +15,6 @@ import random
 
 sys.path.insert(0, "Snippext_public")
 
-from ditto_light.dataset import DittoDataset
-from ditto_light.summarize import Summarizer
-from ditto_light.knowledge import *
-from ditto_light.ditto import train
 from load_and_preprocess import Load_and_preprocess
 from build_dataset import build_tensor_dataset
 from train_NumBert2 import run_NumBert
@@ -28,9 +24,11 @@ if __name__=="__main__":
     parser.add_argument("--task", type=str, default="dirty_amazon_itunes")
     parser.add_argument("--run_id", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=64)
+    #parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--max_len", type=int, default=256)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--n_epochs", type=int, default=20)
+    #parser.add_argument("--n_epochs", type=int, default=2)
     parser.add_argument("--finetuning", dest="finetuning", action="store_true")
     parser.add_argument("--save_model", dest="save_model", action="store_true")
     parser.add_argument("--logdir", type=str, default="checkpoints/")

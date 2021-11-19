@@ -89,7 +89,7 @@ class preprocess_text_data:
             combined_text_data.iloc[0] += [0] * (max_text_len - len(combined_text_data.iloc[0]))
         combined_text_data = combined_text_data.apply(lambda row: torch.tensor(row))
         
-        return pad_sequence(combined_text_data.values, batch_first=True)
+        return pad_sequence(combined_text_data.to_list(), batch_first=True)
 
     def build_attention_mask(self, tensor, max_len=256):
         return tensor==0
