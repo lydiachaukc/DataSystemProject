@@ -13,7 +13,7 @@ import numpy as np
 import time
 import datetime
 
-from transformers import AutoModel, AdamW, get_linear_schedule_with_warmup, BertForSequenceClassification, BertConfig
+from transformers import AutoModel, AdamW, get_linear_schedule_with_warmup, BertConfig
 from torch.utils.data import DataLoader, RandomSampler, SequentialSampler
 from classification_NN import classification_NN
 

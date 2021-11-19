@@ -31,6 +31,8 @@ class classification_NN(nn.Module):
         self.weight_init(final_layer)
         self.layers.append(final_layer)
         self.bn = bn
+        if self.bn:
+            self.bn = nn.ModuleList([torch.nn.BatchNorm1d(dim) for dim in self.layer_channels[1:-1]])
         
     def weight_init(self, m):
         torch.nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain("linear"))

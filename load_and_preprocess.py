@@ -108,4 +108,5 @@ class Preprocess_numeric_data:
             
             # normalize the data
             self.dataset[name] = (column-column.mean())/column.std()
+            self.dataset[name] = self.dataset[name].fillna(0)
 
