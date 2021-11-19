@@ -21,7 +21,7 @@ from numbert2 import NumBert
 
 from torch.utils.data import TensorDataset
 
-def run_NumBert(trainset, validset, epochs, batch_size, lm, learning_rate):
+def run_NumBert(trainset, validset, epochs, batch_size, lm, learning_rate, num_hidden_lyr):
     device = setup_cuda()
     
     seed_val = 42
@@ -36,7 +36,8 @@ def run_NumBert(trainset, validset, epochs, batch_size, lm, learning_rate):
     numbert_config = build_bert_config(
         trainset.combined_text_data.shape[1],
         trainset.combined_numeric_data.shape[1],
-        lm)
+        lm,
+        num_hidden_lyr)
     
     numBert_model = NumBert(numbert_config)
 
@@ -91,7 +92,7 @@ def run_NumBert(trainset, validset, epochs, batch_size, lm, learning_rate):
             optimizer.step()
             scheduler.step()
             
-            print("training step:", step, " loss:", total_train_loss)
+            print("training step:", step, " loss:", loss.item())
     
         avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)            
         print("  Average training loss: {0:.2f}".format(avg_train_loss))
@@ -122,9 +123,9 @@ def run_NumBert(trainset, validset, epochs, batch_size, lm, learning_rate):
                     )
     
             total_valid_loss += result['loss'].item()
-        
+            print("validation step:", step, " loss:", result['loss'].item())
         avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)        
-
+        print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
         
 def setup_cuda():
   if torch.cuda.is_available():    
@@ -154,12 +155,13 @@ def format_time(elapsed):
     '''
     return str(datetime.timedelta(seconds=int(round((elapsed)))))
 
-def build_bert_config(text_input_dimension, num_input_dimension,lm):
+def build_bert_config(text_input_dimension, num_input_dimension, lm, num_hidden_lyr):
     config = BertConfig.from_pretrained(
         'bert-base-uncased',
         num_labels=2,
     )
-    config.text_input_dimension = text_input_dimension
+    config.text_input_dimension = config.hidden_size
     config.num_input_dimension = num_input_dimension
+    config.num_hidden_lyr = num_hidden_lyr
     config.lm = lm
     return config
