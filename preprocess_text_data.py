@@ -21,8 +21,8 @@ import torch
 stopwords = set(stopwords.words('english'))
 # map lm name to huggingface's pre-trained model names
 lm_mp = {'roberta': 'roberta-base',
-         'distilbert': 'distilbert-base-uncased'}
-
+         'distilbert': 'distilbert-base-uncased',
+         'bert': 'bert-base-uncased'}
 class preprocess_text_data:
     """
     """

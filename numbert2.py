@@ -14,7 +14,8 @@ from classification_NN import classification_NN
 from transformers.modeling_outputs import TokenClassifierOutput
 
 lm_mp = {'roberta': 'roberta-base',
-         'distilbert': 'distilbert-base-uncased'}
+         'distilbert': 'distilbert-base-uncased',
+         'bert': 'bert-base-uncased'}
 class NumBert(BertForSequenceClassification):
     """
     reference BertForTokenClassification class in the hugging face library
