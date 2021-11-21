@@ -118,13 +118,15 @@ def run_NumBertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate
             b_input_mask = batch[1].to(device) 
             b_numer_feats = batch[2].to(device)
             b_labels = batch[3].to(device)
+            b_input_segment = batch[4].to(device)
             
             with torch.no_grad():   
                 result = numBertMatcher_model(
                     numerical_features = b_numer_feats,
                     input_ids = b_input_ids,
                     attention_mask = b_input_mask,
-                    labels = b_labels
+                    labels = b_labels,
+                    token_type_ids  = b_input_segment
                     )
     
             total_valid_loss += result['loss'].item()
