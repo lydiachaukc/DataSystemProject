@@ -49,9 +49,9 @@ class preprocess_text_data:
         return tokens
     
     def build_datset(self, textdataA, textdataB):
-        tokens = self.combine_textdataA_textdataB(textdataA, textdataB)
+        tokens, segment_ids = self.combine_textdataA_textdataB(textdataA, textdataB)
         attention_mask = self.build_attention_mask(tokens)
-        return tokens, attention_mask
+        return tokens, attention_mask, segment_ids
             
     def combine_textdataA_textdataB(self, textdataA, textdataB, max_len=256, label_token_len=3):
         max_text_len =  max_len - label_token_len
@@ -81,7 +81,8 @@ class preprocess_text_data:
                     textdataB["all_text_data"].iloc[row] = textdataB[
                         "all_text_data"].iloc[row][0:half_max_text_len]
                     
-                    sentB_len, sentA_len = half_max_text_len, half_max_text_len
+                    sentA_len, sentB_len = half_max_text_len, half_max_text_len
+            segment_ids += [[0] * sentA_len + [1] * sentB_len]
                     
         textdataA["CLS"] = [[self.tokenizer.convert_tokens_to_ids("[CLS]")]] * len(textdataA)
         textdataA["SEP"] = [[self.tokenizer.convert_tokens_to_ids("[SEP]")]] * len(textdataA)
@@ -92,9 +93,13 @@ class preprocess_text_data:
         
         if (len(combined_text_data.iloc[0])<max_text_len):
             combined_text_data.iloc[0] += [0] * (max_text_len - len(combined_text_data.iloc[0]))
+            segment_ids[0] += [0] * (max_text_len - len(segment_ids[0]))
         combined_text_data = combined_text_data.apply(lambda row: torch.tensor(row))
         
-        return pad_sequence(combined_text_data.to_list(), batch_first=True)
+        combined_text_data = pad_sequence(combined_text_data.to_list(), batch_first=True)
+        segment_ids = pad_sequence(list(map(torch.tensor, segment_ids)), batch_first=True)
+        
+        return combined_text_data, segment_ids
 
     def build_attention_mask(self, tensor, max_len=256):
         return tensor==0

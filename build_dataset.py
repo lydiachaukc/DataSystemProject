@@ -20,7 +20,7 @@ class build_tensor_dataset:
         datasetB_numeric_data = preprocessed_obj.datasetB_numeric_data.iloc[id_B]
         datasetB_text_data = preprocessed_obj.datasetB_text_data.iloc[id_B]
         
-        self.combined_text_data, self.text_attention_mask = preprocessed_obj.text_preprocesser.build_datset(
+        self.combined_text_data, self.text_attention_mask, self.text_segment_ids = preprocessed_obj.text_preprocesser.build_datset(
             datasetA_text_data, datasetB_text_data)
         self.combined_numeric_data = self.combine_numeric_data(
             datasetA_numeric_data, datasetB_numeric_data)

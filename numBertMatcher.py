@@ -35,12 +35,14 @@ class NumBertMatcher(BertForSequenceClassification):
             numerical_features,
             input_ids,
             attention_mask,
-            labels):
+            labels,
+            segment_ids):
         
         #Run the text through the BERT model
         output = self.bert(
             input_ids = input_ids,
-            attention_mask = attention_mask
+            attention_mask = attention_mask,
+            segment_ids = segment_ids
             )
         
         cls_output = self.dropout(output[1])
