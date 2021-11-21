@@ -8,15 +8,15 @@ import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 
-from transformers import AutoModel
+#from transformers import AutoModel
 from transformers import BertForSequenceClassification
 from classification_NN import classification_NN
-from transformers.modeling_outputs import TokenClassifierOutput
+from transformers.modeling_outputs import SequenceClassifierOutput
 
 class NumBertMatcher(BertForSequenceClassification):
     """
     reference BertForTokenClassification class in the hugging face library
-    https://huggingface.co/transformers/_modules/transformers/modeling_bert.html#BertForTokenClassification
+    https://huggingface.co/transformers/_modules/transformers/modeling_bert.html#BertForSequenceClassification
     """
     def __init__(self, config):
         super().__init__(config)
@@ -58,14 +58,13 @@ class NumBertMatcher(BertForSequenceClassification):
                     
         # Loss calculaiton
         if labels is not None:
-            calculate_loss = CrossEntropyLoss(weight = None)
+            loss_fct  = CrossEntropyLoss()
             labels = labels.long()
-            loss = calculate_loss(logits.view(-1,2),labels.view(-1))
+            loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
         else:
             loss=None
         
-        return TokenClassifierOutput(
-                    loss=loss,
-                    logits=logits,
-                    hidden_states=output.hidden_states,
-                    attentions=output.attentions)
+        return SequenceClassifierOutput(
+            loss=loss,
+            logits=logits
+        )
