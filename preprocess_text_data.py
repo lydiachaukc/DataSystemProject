@@ -6,12 +6,7 @@ Created on Thu Nov 11 15:29:32 2021
 """
 import pandas as pd
 import numpy as np
-import csv
-import sys
-import os
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from collections import Counter
 from nltk.corpus import stopwords
 from transformers import AutoTokenizer
 from torch.nn.utils.rnn import pad_sequence
@@ -23,6 +18,7 @@ stopwords = set(stopwords.words('english'))
 lm_mp = {'roberta': 'roberta-base',
          'distilbert': 'distilbert-base-uncased',
          'bert': 'bert-base-uncased'}
+
 class preprocess_text_data:
     """
     """
@@ -60,6 +56,7 @@ class preprocess_text_data:
     def combine_textdataA_textdataB(self, textdataA, textdataB, max_len=256, label_token_len=3):
         max_text_len =  max_len - label_token_len
         half_max_text_len = int(max_text_len /2)
+        segment_ids = []
         
         for row in range(len(textdataA["len"])):
             sentA_len = int(textdataA["len"].iloc[row])
@@ -69,14 +66,22 @@ class preprocess_text_data:
                 if sentA_len < half_max_text_len:
                     textdataB["all_text_data"].iloc[row] = textdataB[
                         "all_text_data"].iloc[row][0:(max_text_len - sentA_len)]
+                    
+                    sentB_len = max_text_len - sentA_len
+                    
                 elif sentB_len < half_max_text_len:
                     textdataA["all_text_data"].iloc[row] = textdataA[
                         "all_text_data"].iloc[row][:(max_text_len - sentB_len)]
+                    
+                    sentA_len = max_text_len - sentB_len
+                    
                 else:
                     textdataA["all_text_data"].iloc[row] = textdataA[
                         "all_text_data"].iloc[row][0:half_max_text_len]
                     textdataB["all_text_data"].iloc[row] = textdataB[
                         "all_text_data"].iloc[row][0:half_max_text_len]
+                    
+                    sentB_len, sentA_len = half_max_text_len, half_max_text_len
                     
         textdataA["CLS"] = [[self.tokenizer.convert_tokens_to_ids("[CLS]")]] * len(textdataA)
         textdataA["SEP"] = [[self.tokenizer.convert_tokens_to_ids("[SEP]")]] * len(textdataA)
