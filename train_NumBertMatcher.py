@@ -58,13 +58,14 @@ def run_NumBertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate
     
     total_t0 = time.time()
 
-    total_train_loss = 0
+    
     for epoch in range(epochs):
         print("")
         print('======== Epoch {:} / {:} ========'.format(epoch + 1, epochs))
         print('Training...')
         epoch_t0 = time.time()
         
+        total_train_loss = 0
         for step, batch in enumerate(train_dataloader):
             if step % 100 == 0 and not step == 0:
                 elapsed = str(datetime.timedelta(seconds=int(round((time.time() - epoch_t0)))))
@@ -111,7 +112,6 @@ def run_NumBertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate
         numBertMatcher_model.eval()
         
         total_valid_loss = 0
-        
         for step, batch in enumerate(valid_dataloader):
             
             b_input_ids = batch[0].to(device)
