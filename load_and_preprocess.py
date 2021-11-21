@@ -6,14 +6,6 @@ Created on Wed Nov 10 21:35:04 2021
 """
 import pandas as pd
 import numpy as np
-import csv
-import sys
-import os
-
-from sklearn.feature_extraction.text import TfidfVectorizer
-from collections import Counter
-from nltk.corpus import stopwords
-from transformers import AutoTokenizer
 
 from preprocess_text_data import preprocess_text_data
 

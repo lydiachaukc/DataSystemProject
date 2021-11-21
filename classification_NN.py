@@ -6,9 +6,7 @@ Created on Sat Nov 13 15:05:20 2021
 """
 import torch
 import torch.nn as nn
-from torch.nn import CrossEntropyLoss, MSELoss
-import math
-                
+   
 class classification_NN(nn.Module):
     def __init__(self,
                  inputs_dimension,
@@ -19,7 +17,8 @@ class classification_NN(nn.Module):
         self.dropout = nn.Dropout(dropout_prob)
         
         output_dim = 2 # 0 for unmatch; 1 for match
-        self.layer_channels = list(range(inputs_dimension,output_dim,-1*int((inputs_dimension-output_dim)/(1+num_hidden_lyr))))
+        #self.layer_channels = list(range(inputs_dimension,output_dim,-1*int((inputs_dimension-output_dim)/(1+num_hidden_lyr))))
+        self.layer_channels = [inputs_dimension] * (1+num_hidden_lyr)
         self.layer_channels += [output_dim]
         
         self.activation = nn.ReLU().double()
