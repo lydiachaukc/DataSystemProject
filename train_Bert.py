@@ -111,12 +111,14 @@ def run_BertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate, n
             b_input_ids = batch[0].to(device)
             b_input_mask = batch[1].to(device) 
             b_labels = batch[2].to(device)
+            b_input_segment = batch[3].to(device)
             
             with torch.no_grad():   
                 result = bert_model(
                     input_ids = b_input_ids,
                     attention_mask = b_input_mask,
-                    labels = b_labels
+                    labels = b_labels,
+                    token_type_ids  = b_input_segment
                     )
     
             total_valid_loss += result['loss'].item()
@@ -137,6 +139,7 @@ def prepare_data_loader(dataset,batch_size):
             dataset.combined_text_data,
             dataset.text_attention_mask,
             dataset.labels,
+            dataset.text_segment_ids
             )
     
     return DataLoader(

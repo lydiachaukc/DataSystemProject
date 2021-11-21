@@ -83,7 +83,7 @@ def run_NumBertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate
                 input_ids = b_input_ids,
                 attention_mask = b_input_mask,
                 labels = b_labels,
-                segment_ids  = b_input_segment
+                token_type_ids  = b_input_segment
                 )
     
             loss = result['loss']
