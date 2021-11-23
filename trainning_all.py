@@ -16,29 +16,26 @@ sys.path.insert(0, "Snippext_public")
 
 from load_and_preprocess import Load_and_preprocess
 from build_dataset import build_tensor_dataset
-from train_NumBertMatcher import run_NumBertMatcher
-from train_Bert import run_BertMatcher
+from train_NumBertMatcher import train_and_valid_NumBertMatcher
+from train_Bert import train_and_valid_BertMatcher
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=str, default="dirty_amazon_itunes")
     parser.add_argument("--run_id", type=int, default=0)
-    #parser.add_argument("--batch_size", type=int, default=64)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--max_len", type=int, default=256)
     parser.add_argument("--lr", type=float, default=3e-5)
-    #parser.add_argument("--n_epochs", type=int, default=20)
-    parser.add_argument("--n_epochs", type=int, default=3)
-    parser.add_argument("--finetuning", dest="finetuning", action="store_true")
+    parser.add_argument("--n_epochs", type=int, default=1)
     parser.add_argument("--save_model", dest="save_model", action="store_true")
     parser.add_argument("--logdir", type=str, default="checkpoints/")
     parser.add_argument("--lm", type=str, default='bert')
     parser.add_argument("--fp16", dest="fp16", action="store_true")
-    parser.add_argument("--da", type=str, default=None)
-    parser.add_argument("--alpha_aug", type=float, default=0.8)
-    parser.add_argument("--dk", type=str, default=None)
     parser.add_argument("--summarize", dest="summarize", action="store_true")
     parser.add_argument("--size", type=int, default=None)
+    parser.add_argument("--da", type=str, default=None)
+    parser.add_argument("--dk", type=str, default=None)
+    parser.add_argument("--number_feature_columns", type=list, default=["Price"])
 
     hp = parser.parse_args()
 
@@ -72,14 +69,17 @@ if __name__=="__main__":
         config, hp.lm,
         data_was_preprocessed=True, store_preprocessed_data=True)
     
-    # load train/dev/test datasets
+    # build train/dev/test datasets
     trainset = build_tensor_dataset(preprocessed_data, trainset_path)
     validset = build_tensor_dataset(preprocessed_data, validset_path)
     testset = build_tensor_dataset(preprocessed_data, testset_path)
     
-    running_NumBertMatcher = True
+    '''
+    Training and validating NumBertMatch
+    '''
+    running_NumBertMatcher = False
     if running_NumBertMatcher:
-        run_NumBertMatcher(trainset,
+        train_and_valid_NumBertMatcher(trainset,
                     validset,
                     epochs=hp.n_epochs,
                     batch_size=hp.batch_size,
@@ -87,8 +87,12 @@ if __name__=="__main__":
                     learning_rate=hp.lr,
                     num_hidden_lyr = 2)
     
-    else:
-        run_BertMatcher(trainset,
+    '''
+    Training and validating basic Bert model
+    '''
+    running_BertMatcher = True
+    if running_BertMatcher:
+        train_and_valid_BertMatcher(trainset,
                     validset,
                     epochs=hp.n_epochs,
                     batch_size=hp.batch_size,

@@ -11,16 +11,23 @@ import time
 import datetime
 
 from transformers import AdamW, get_linear_schedule_with_warmup, BertConfig
-from torch.utils.data import DataLoader, RandomSampler
-
+from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 from transformers import BertForSequenceClassification
-
-from torch.utils.data import TensorDataset
+from tensorboardX import SummaryWriter
 
 lm_mp = {'roberta': 'roberta-base',
          'distilbert': 'distilbert-base-uncased',
          'bert': 'bert-base-uncased'}
-def run_BertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate, num_hidden_lyr):
+
+def train_and_valid_BertMatcher(trainset,
+                                validset,
+                                epochs, 
+                                batch_size,
+                                lm,
+                                learning_rate,
+                                num_hidden_lyr,
+                                output_directory = "/logger"):
+    
     device = setup_cuda()
     
     seed_val = 42
@@ -54,13 +61,15 @@ def run_BertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate, n
     '''
     bert_model.train()
     
+    summary_writer = SummaryWriter(output_directory)
+    summary_writer.add_text('Bert', 'Recording loss data for basic Bert Model', 0)
     total_t0 = time.time()
-
     
     for epoch in range(epochs):
         print("")
         print('======== Epoch {:} / {:} ========'.format(epoch + 1, epochs))
         print('Training...')
+        
         epoch_t0 = time.time()
         
         total_train_loss = 0
@@ -94,10 +103,13 @@ def run_BertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate, n
             optimizer.step()
             scheduler.step()
             
-            print("training step:", step, " loss:", loss.item())
+            loss_per_sample = loss.item()/ batch_size
+            print("training step:", step, " loss:", loss_per_sample)
+            summary_writer.add_scalar("training ", scalar_value = loss_per_sample , global_step = step)
     
-        avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)            
+        avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)
         print("  Average training loss: {0:.2f}".format(avg_train_loss))
+        summary_writer.add_scalar("total training ", scalar_value = avg_train_loss , global_step = epoch)
         #print("  Training epcoh took: {:}".format(format_time(time.time() - epoch_t0)))
         
     #print("  Total training took: {:}".format(format_time(time.time() - total_t0)))
@@ -125,9 +137,17 @@ def run_BertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate, n
                     )
     
             total_valid_loss += result['loss'].item()
-            print("validation step:", step, " loss:", result['loss'].item())
-        avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)        
+            
+            loss_per_sample = result['loss'].item() / batch_size
+            
+            print("validation step:", step, " loss:", loss_per_sample)
+            summary_writer.add_scalar("validating ", scalar_value = loss_per_sample , global_step = step)
+
+        avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
         print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
+        summary_writer.add_scalar("total validating ", scalar_value = avg_valid_loss , global_step = epoch)
+        
+    summary_writer.close()
         
 def setup_cuda():
   if torch.cuda.is_available():    

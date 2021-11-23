@@ -10,14 +10,21 @@ import numpy as np
 from preprocess_text_data import preprocess_text_data
 
 class Load_and_preprocess:
-    def __init__(self, task_config, lm,
-                 data_was_preprocessed = False, store_preprocessed_data = False):
+    def __init__(self, 
+                 task_config, 
+                 lm,
+                 number_feature_columns,
+                 data_was_preprocessed = False, 
+                 store_preprocessed_data = False):
+        
         self.task_config = task_config
+        
         datasetA = pd.read_csv(task_config["tableA"], index_col = "id")
         datasetB = pd.read_csv(task_config["tableB"], index_col = "id")
         
-        datasetA["Price"] = pd.to_numeric(datasetA["Price"], errors='coerce')
-        datasetB["Price"] = pd.to_numeric(datasetB["Price"], errors='coerce')
+        for col_name in number_feature_columns:
+            datasetA[col_name] = pd.to_numeric(datasetA[col_name], errors='coerce')
+            datasetB[col_name] = pd.to_numeric(datasetB[col_name], errors='coerce')
         
         self.numeric_columns_names = {"datasetA": [], "datasetB": []}
         self.text_columns_names = {"datasetA": [], "datasetB": []}
@@ -79,7 +86,6 @@ class Load_and_preprocess:
             folder_director + "datasetB_text_data.csv", index_col = 0,
             converters={"all_text_data": lambda x: list(map(int, x.strip("[]").split(", ")))})
 
-            
         
         
         
