@@ -44,7 +44,6 @@ class NumBertMatcher(BertForSequenceClassification):
             attention_mask = attention_mask,
             token_type_ids = token_type_ids
             )
-        
         cls_output = self.dropout(output[1])
         
         # batch normalization
@@ -52,11 +51,9 @@ class NumBertMatcher(BertForSequenceClassification):
         
         #concat everything to a vector
         all_features = torch.cat((cls_output, numerical_features), dim=1)
-        
-        # Output Classifier / Regression
+    
         logits = self.classifier(all_features)
-                    
-        # Loss calculaiton
+        
         if labels is not None:
             loss_fct  = CrossEntropyLoss()
             labels = labels.long()

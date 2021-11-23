@@ -8,36 +8,45 @@ import torch
 import random
 import numpy as np
 import time
-import datetime
-
+import datetime as datetime
 from transformers import AdamW, get_linear_schedule_with_warmup, BertConfig
-from torch.utils.data import DataLoader, RandomSampler
+from torch.utils.data import DataLoader, RandomSampler, TensorDataset
+from tensorboardX import SummaryWriter
 
 from numBertMatcher import NumBertMatcher
-
-from torch.utils.data import TensorDataset
 
 lm_mp = {'roberta': 'roberta-base',
          'distilbert': 'distilbert-base-uncased',
          'bert': 'bert-base-uncased'}
 
-def run_NumBertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate, num_hidden_lyr):
+def train_and_valid_NumBertMatcher(trainset,
+                                   validset,
+                                   epochs,
+                                   batch_size,
+                                   lm,
+                                   learning_rate,
+                                   num_hidden_lyr,
+                                   output_directory = "/logger"):
     device = setup_cuda()
     
+    # setting seed
     seed_val = 42
     random.seed(seed_val)
     np.random.seed(seed_val)
     torch.manual_seed(seed_val)
     torch.cuda.manual_seed_all(seed_val)
     
+    
     train_dataloader = prepare_data_loader(trainset, batch_size)
     valid_dataloader = prepare_data_loader(validset, batch_size)
+    
     
     numbert_config = build_bert_config(
         trainset.combined_text_data.shape[1],
         trainset.combined_numeric_data.shape[1],
         lm,
         num_hidden_lyr)
+    
     
     numBertMatcher_model = NumBertMatcher.from_pretrained(lm_mp[lm], config = numbert_config)
     if torch.cuda.is_available(): 
@@ -51,6 +60,11 @@ def run_NumBertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate
     scheduler = get_linear_schedule_with_warmup(optimizer, 
                                                 num_warmup_steps = 0, # Default value in run_glue.py
                                                 num_training_steps = len(train_dataloader) * epochs)
+    
+    time = datetime.now().strftime("%d_%m_%Y_%H_%M")
+    summary_writer = SummaryWriter(output_directory + "/" + time)
+    summary_writer.add_text('NumBerMatcher', 'Recording loss data for NumBerMatcher', 0)
+    
     '''
     Training NumBert
     '''
@@ -58,7 +72,6 @@ def run_NumBertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate
     
     total_t0 = time.time()
 
-    
     for epoch in range(epochs):
         print("")
         print('======== Epoch {:} / {:} ========'.format(epoch + 1, epochs))
@@ -98,10 +111,14 @@ def run_NumBertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate
             optimizer.step()
             scheduler.step()
             
-            print("training step:", step, " loss:", loss.item())
-    
-        avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)            
+            loss_per_sample = loss.item()/ batch_size
+            print("training step:", step, " loss:", loss_per_sample)
+            summary_writer.add_scalar("training ", scalar_value = loss_per_sample , global_step = step)
+            
+        avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)
         print("  Average training loss: {0:.2f}".format(avg_train_loss))
+        summary_writer.add_scalar("total training ", scalar_value = avg_train_loss , global_step = epoch)
+        
         #print("  Training epcoh took: {:}".format(format_time(time.time() - epoch_t0)))
         
     #print("  Total training took: {:}".format(format_time(time.time() - total_t0)))
@@ -130,9 +147,17 @@ def run_NumBertMatcher(trainset, validset, epochs, batch_size, lm, learning_rate
                     )
     
             total_valid_loss += result['loss'].item()
-            print("validation step:", step, " loss:", result['loss'].item())
-        avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)        
+            
+            loss_per_sample = result['loss'].item() / batch_size
+            
+            print("validation step:", step, " loss:", loss_per_sample)
+            summary_writer.add_scalar("validating ", scalar_value = loss_per_sample , global_step = step)
+            
+        avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
         print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
+        summary_writer.add_scalar("total validating ", scalar_value = avg_valid_loss , global_step = epoch)
+        
+    summary_writer.close()
         
 def setup_cuda():
   if torch.cuda.is_available():    
