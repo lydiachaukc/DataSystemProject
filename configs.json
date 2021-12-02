@@ -8,7 +8,7 @@
     "trainset": "data/amazon_google/train.csv",
     "validset": "data/amazon_google/valid.csv",
     "testset": "data/amazon_google/test.csv",
-    "number_feature_columns": ["Price"]
+    "number_feature_columns": ["price"]
   },  
   {
     "name": "dirty_amazon_itunes",
@@ -27,7 +27,7 @@
     "vocab": ["0", "1"],
     "tableA": "data/dirty_dblp_acm/tableA.csv",
     "tableB": "data/dirty_dblp_acm/tableB.csv",
-    "trainset": "data/dirty_amazon_itunes/train.csv",
+    "trainset": "data/dirty_dblp_acm/train.csv",
     "validset": "data/dirty_dblp_acm/valid.csv",
     "testset": "data/dirty_dblp_acm/test.csv",
     "number_feature_columns": ["year"]
@@ -52,6 +52,6 @@
     "trainset": "data/dirty_walmart_amazon/train.csv",
     "validset": "data/dirty_walmart_amazon/valid.csv",
     "testset": "data/dirty_walmart_amazon/test.csv",
-    "number_feature_columns": ["year"]
+    "number_feature_columns": ["price"]
   }
 ]

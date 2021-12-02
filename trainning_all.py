@@ -21,22 +21,20 @@ from train_Bert import train_and_valid_BertMatcher
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", type=str, default="dirty_amazon_itunes")
+    parser.add_argument("--task", type=str, default="amazon_google")
     parser.add_argument("--run_id", type=int, default=0)
     parser.add_argument("--batch_size", type=int, default=4)
     parser.add_argument("--max_len", type=int, default=256)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--n_epochs", type=int, default=1)
     parser.add_argument("--save_preprocessed_data", type=bool, default=True)
-    parser.add_argument("--data_was_preprocessed", type=bool, default=True)
+    parser.add_argument("--data_was_preprocessed", type=bool, default=False)
     parser.add_argument("--save_model", dest="save_model", action="store_true")
     parser.add_argument("--lm", type=str, default='bert')
     parser.add_argument("--fp16", dest="fp16", action="store_true")
-    parser.add_argument("--summarize", dest="summarize", action="store_true")
     parser.add_argument("--size", type=int, default=None)
     parser.add_argument("--da", type=str, default=None)
     parser.add_argument("--dk", type=str, default=None)
-    parser.add_argument("--number_feature_columns", type=list, default=["Price"])
     parser.add_argument("--output_directory", type=str, default="results")
 
     hp = parser.parse_args()
@@ -51,11 +49,6 @@ if __name__=="__main__":
 
     # only a single task for baseline
     task = hp.task
-
-    # create the tag of the run
-    run_tag = '%s_lm=%s_da=%s_dk=%s_su=%s_size=%s_id=%d' % (task, hp.lm, hp.da,
-            hp.dk, hp.summarize, str(hp.size), hp.run_id)
-    run_tag = run_tag.replace('/', '_')
 
     # load task configuration
     configs = json.load(open('configs.json'))
@@ -99,6 +92,18 @@ if __name__=="__main__":
     '''
     running_BertMatcher = True
     if running_BertMatcher:
+        preprocessed_data = Load_and_preprocess(
+        config,
+        hp.lm,
+        number_feature_columns = [],
+        data_was_preprocessed = False,
+        store_preprocessed_data = False)
+    
+        # build train/dev/test datasets
+        trainset = build_tensor_dataset(preprocessed_data, trainset_path)
+        validset = build_tensor_dataset(preprocessed_data, validset_path)
+        testset = build_tensor_dataset(preprocessed_data, testset_path)
+        
         train_and_valid_BertMatcher(
             trainset,
             validset,

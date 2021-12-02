@@ -27,7 +27,8 @@ def train_and_valid_BertMatcher(trainset,
                                 lm,
                                 learning_rate,
                                 num_hidden_lyr,
-                                output_directory = "results",):
+                                output_directory = "results",
+                                data_name = ""):
     output = pd.read_csv(output_directory + "/result.csv")
     device = setup_cuda()
     
@@ -108,12 +109,12 @@ def train_and_valid_BertMatcher(trainset,
             loss_per_sample = loss.item()/ batch_size
             print("training step:", step, " loss:", loss_per_sample)
             summary_writer.add_scalar("training ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "training")
+            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "training", data_name)
     
         avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)
         print("  Average training loss: {0:.2f}".format(avg_train_loss))
         summary_writer.add_scalar("total training ", scalar_value = avg_train_loss , global_step = epoch)
-        output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average training")
+        output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average training", data_name)
         
         
         '''
@@ -144,12 +145,12 @@ def train_and_valid_BertMatcher(trainset,
             
             print("validation step:", step, " loss:", loss_per_sample)
             summary_writer.add_scalar("validating ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "bert", epoch, step, loss_per_sample, "validation")
+            output = add_record(output, today_date, "bert", epoch, step, loss_per_sample, "validation", data_name)
 
         avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
         print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
         summary_writer.add_scalar("total validating ", scalar_value = avg_valid_loss , global_step = epoch)
-        output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average validation")
+        output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average validation", data_name)
     
     output.to_csv(output_directory + "/result.csv", index=False)
     summary_writer.close()
@@ -183,5 +184,7 @@ def format_time(elapsed):
     '''
     return str(datetime.timedelta(seconds=int(round((elapsed)))))
 
-def add_record(dataframe, time, model, epoch, batch, loss, purpose):
-    return dataframe.append({"Time": time, "Model": model, "Epochs": epoch, "Batch": batch, "Loss": loss, "Dataset": purpose}, ignore_index=True)
+def add_record(dataframe, time = "", model = "", epoch = "", batch = "", loss = "", purpose = "", data = ""):
+    return dataframe.append(
+        {"Time": time, "Model": model, "Epochs": epoch, "Batch": batch, "Loss": loss, "Purpose": purpose, "Data":data},
+        ignore_index=True)

@@ -53,7 +53,7 @@ class Preprocess_text_data:
         attention_mask = self.build_attention_mask(tokens)
         return tokens, attention_mask, segment_ids
             
-    def combine_textdataA_textdataB(self, textdataA, textdataB, max_len=256, label_token_len=3):
+    def combine_textdataA_textdataB(self, textdataA, textdataB, max_len=512, label_token_len=3):
         max_text_len =  max_len - label_token_len
         half_max_text_len = int(max_text_len /2)
         segment_ids = []
@@ -82,7 +82,7 @@ class Preprocess_text_data:
                         "all_text_data"].iloc[row][0:half_max_text_len]
                     
                     sentA_len, sentB_len = half_max_text_len, half_max_text_len
-            segment_ids += [[0] * sentA_len + [1] * sentB_len]
+            segment_ids += [[0] * (sentA_len + 1) + [1] * sentB_len]
                     
         textdataA["CLS"] = [[self.tokenizer.convert_tokens_to_ids("[CLS]")]] * len(textdataA)
         textdataA["SEP"] = [[self.tokenizer.convert_tokens_to_ids("[SEP]")]] * len(textdataA)
@@ -91,9 +91,9 @@ class Preprocess_text_data:
         textdataB = textdataB.reset_index()
         combined_text_data = textdataA["CLS"] + textdataA["all_text_data"] + textdataA["SEP"] + textdataB["all_text_data"] + textdataA["SEP"] 
         
-        if (len(combined_text_data.iloc[0])<max_text_len):
-            combined_text_data.iloc[0] += [0] * (max_text_len - len(combined_text_data.iloc[0]))
-            segment_ids[0] += [0] * (max_text_len - len(segment_ids[0]))
+        if (len(combined_text_data.iloc[0])<max_len):
+            combined_text_data.iloc[0] += [0] * (max_len - len(combined_text_data.iloc[0]))
+            segment_ids[0] += [0] * (max_len - len(segment_ids[0]))
         combined_text_data = combined_text_data.apply(lambda row: torch.tensor(row))
         
         combined_text_data = pad_sequence(combined_text_data.to_list(), batch_first=True)
