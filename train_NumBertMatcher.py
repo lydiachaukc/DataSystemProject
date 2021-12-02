@@ -27,7 +27,8 @@ def train_and_valid_NumBertMatcher(trainset,
                                    lm,
                                    learning_rate,
                                    num_hidden_lyr,
-                                   output_directory = "results"):
+                                   output_directory = "results",
+                                   data_name = ""):
     
     output = pd.read_csv(output_directory + "/result.csv")
     device = setup_cuda()
@@ -61,7 +62,7 @@ def train_and_valid_NumBertMatcher(trainset,
       eps = 1e-8 
     )
     scheduler = get_linear_schedule_with_warmup(optimizer, 
-                                                num_warmup_steps = 0, # Default value in run_glue.py
+                                                num_warmup_steps = 0,
                                                 num_training_steps = len(train_dataloader) * epochs)
     today_date = str(pd.Timestamp.today().date())
     summary_writer = SummaryWriter(output_directory + "/" + today_date)
@@ -113,15 +114,17 @@ def train_and_valid_NumBertMatcher(trainset,
             optimizer.step()
             scheduler.step()
             
+            # recording loss result
             loss_per_sample = loss.item()/ batch_size
             print("training step:", step, " loss:", loss_per_sample)
             summary_writer.add_scalar("training ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "training")
+            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "training", data_name)
             
+        # recording loss result
         avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)
         print("  Average training loss: {0:.2f}".format(avg_train_loss))
         summary_writer.add_scalar("total training ", scalar_value = avg_train_loss , global_step = epoch)
-        output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average training")
+        output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average training", data_name)
     
         '''
         Validating NumBert
@@ -152,17 +155,21 @@ def train_and_valid_NumBertMatcher(trainset,
             
             loss_per_sample = result['loss'].item() / batch_size
             
+            # recording loss result
             print("validation step:", step, " loss:", loss_per_sample)
             summary_writer.add_scalar("validating ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "validation")
+            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "validation", data_name)
             
+        # recording loss result
         avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
         print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
         summary_writer.add_scalar("total validating ", scalar_value = avg_valid_loss , global_step = epoch)
-        output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average validation")
+        output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average validation", data_name)
         
+    
     summary_writer.close()
-    output.to_csv(output_directory + "/" + today_date, index=False)
+    output.to_csv(output_directory + "/result.csv" , index=False)
+
 
 def prepare_data_loader(dataset,batch_size):
     tensor_dataset = TensorDataset(
@@ -181,11 +188,13 @@ def prepare_data_loader(dataset,batch_size):
         drop_last = True
     )
     
+
 def format_time(elapsed):
     '''
     Takes a time in seconds and returns a string hh:mm:ss
     '''
     return str(datetime.timedelta(seconds=int(round((elapsed)))))
+
 
 def build_bert_config(text_input_dimension, num_input_dimension, lm, num_hidden_lyr):
     config = BertConfig.from_pretrained(
@@ -206,5 +215,7 @@ def setup_cuda():
       print('Running on CPU')
       return torch.device("cpu")
 
-def add_record(dataframe, time, model, epoch, batch, loss, purpose):
-    return dataframe.append({"Time": time, "Model": model, "Epochs": epoch, "Batch": batch, "Loss": loss, "Dataset": purpose}, ignore_index=True)
+def add_record(dataframe, time = "", model = "", epoch = "", batch = "", loss = "", purpose = "", data = ""):
+    return dataframe.append(
+        {"Time": time, "Model": model, "Epochs": epoch, "Batch": batch, "Loss": loss, "Purpose": purpose, "Data":data},
+        ignore_index=True)
