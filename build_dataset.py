@@ -4,7 +4,7 @@ Created on Sun Nov 14 00:50:01 2021
 
 @author: lydia
 """
-import preprocess_text_data
+import preprocess_data.preprocess_text_data
 import pandas as pd
 import torch
 
@@ -22,11 +22,6 @@ class build_tensor_dataset:
         
         self.combined_text_data, self.text_attention_mask, self.text_segment_ids = preprocessed_obj.text_preprocesser.build_datset(
             datasetA_text_data, datasetB_text_data)
-        self.combined_numeric_data = self.combine_numeric_data(
-            datasetA_numeric_data, datasetB_numeric_data)
+        self.numeric_dataA = torch.tensor(datasetA_numeric_data.values)
+        self.numeric_dataB = torch.tensor(datasetB_numeric_data.values)
         self.labels = torch.tensor(id_labs.iloc[:,2])
-        
-    def combine_numeric_data(self, datasetA, datasetB):
-        datasetA = datasetA.reset_index(drop=True)
-        datasetB = datasetB.reset_index(drop=True)
-        return torch.tensor(pd.concat([datasetA, datasetB], axis=1).values)

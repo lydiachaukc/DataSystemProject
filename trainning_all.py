@@ -14,7 +14,7 @@ import random
 
 sys.path.insert(0, "Snippext_public")
 
-from load_and_preprocess import Load_and_preprocess
+from preprocess_data.load_and_preprocess import Load_and_preprocess
 from build_dataset import build_tensor_dataset
 from train_NumBertMatcher import train_and_valid_NumBertMatcher
 from train_Bert import train_and_valid_BertMatcher
@@ -23,12 +23,13 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=str, default="dirty_amazon_itunes")
     parser.add_argument("--run_id", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--max_len", type=int, default=256)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--n_epochs", type=int, default=1)
+    parser.add_argument("--save_preprocessed_data", type=bool, default=True)
+    parser.add_argument("--data_was_preprocessed", type=bool, default=True)
     parser.add_argument("--save_model", dest="save_model", action="store_true")
-    parser.add_argument("--logdir", type=str, default="checkpoints/")
     parser.add_argument("--lm", type=str, default='bert')
     parser.add_argument("--fp16", dest="fp16", action="store_true")
     parser.add_argument("--summarize", dest="summarize", action="store_true")
@@ -36,6 +37,7 @@ if __name__=="__main__":
     parser.add_argument("--da", type=str, default=None)
     parser.add_argument("--dk", type=str, default=None)
     parser.add_argument("--number_feature_columns", type=list, default=["Price"])
+    parser.add_argument("--output_directory", type=str, default="results")
 
     hp = parser.parse_args()
 
@@ -63,11 +65,15 @@ if __name__=="__main__":
     trainset_path = config['trainset']
     validset_path = config['validset']
     testset_path = config['testset']
+    number_feature_columns = config['number_feature_columns']
     
     # preprocess all input data in datasetA and datasetb
     preprocessed_data = Load_and_preprocess(
-        config, hp.lm,
-        data_was_preprocessed=True, store_preprocessed_data=True)
+        config,
+        hp.lm,
+        number_feature_columns = number_feature_columns,
+        data_was_preprocessed = hp.data_was_preprocessed,
+        store_preprocessed_data = hp.save_preprocessed_data)
     
     # build train/dev/test datasets
     trainset = build_tensor_dataset(preprocessed_data, trainset_path)
@@ -79,23 +85,26 @@ if __name__=="__main__":
     '''
     running_NumBertMatcher = False
     if running_NumBertMatcher:
-        train_and_valid_NumBertMatcher(trainset,
-                    validset,
-                    epochs=hp.n_epochs,
-                    batch_size=hp.batch_size,
-                    lm=hp.lm,
-                    learning_rate=hp.lr,
-                    num_hidden_lyr = 2)
+        train_and_valid_NumBertMatcher(
+            trainset,
+            validset,
+            epochs = hp.n_epochs,
+            batch_size = hp.batch_size,
+            lm = hp.lm,
+            learning_rate = hp.lr,
+            num_hidden_lyr = 2)
     
     '''
     Training and validating basic Bert model
     '''
     running_BertMatcher = True
     if running_BertMatcher:
-        train_and_valid_BertMatcher(trainset,
-                    validset,
-                    epochs=hp.n_epochs,
-                    batch_size=hp.batch_size,
-                    lm=hp.lm,
-                    learning_rate=hp.lr,
-                    num_hidden_lyr = 4)
+        train_and_valid_BertMatcher(
+            trainset,
+            validset,
+            epochs=hp.n_epochs,
+            batch_size=hp.batch_size,
+            lm=hp.lm,
+            learning_rate=hp.lr,
+            num_hidden_lyr = 4,
+            output_directory = hp.output_directory)

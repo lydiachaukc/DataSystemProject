@@ -7,8 +7,9 @@
     "tableB": "data/amazon_google/tableB.csv",
     "trainset": "data/amazon_google/train.csv",
     "validset": "data/amazon_google/valid.csv",
-    "testset": "data/amazon_google/test.csv"
-  },
+    "testset": "data/amazon_google/test.csv",
+    "number_feature_columns": ["Price"]
+  },  
   {
     "name": "dirty_amazon_itunes",
     "task_type": "classification",
@@ -17,6 +18,40 @@
     "tableB": "data/dirty_amazon_itunes/tableB.csv",
     "trainset": "data/dirty_amazon_itunes/train.csv",
     "validset": "data/dirty_amazon_itunes/valid.csv",
-    "testset": "data/dirty_amazon_itunes/test.csv"
+    "testset": "data/dirty_amazon_itunes/test.csv",
+    "number_feature_columns": ["Price"]
+  },
+  {
+    "name": "dirty_dblp_acm",
+    "task_type": "classification",
+    "vocab": ["0", "1"],
+    "tableA": "data/dirty_dblp_acm/tableA.csv",
+    "tableB": "data/dirty_dblp_acm/tableB.csv",
+    "trainset": "data/dirty_amazon_itunes/train.csv",
+    "validset": "data/dirty_dblp_acm/valid.csv",
+    "testset": "data/dirty_dblp_acm/test.csv",
+    "number_feature_columns": ["year"]
+  },
+  {
+    "name": "dirty_dblp_scholar",
+    "task_type": "classification",
+    "vocab": ["0", "1"],
+    "tableA": "data/dirty_dblp_scholar/tableA.csv",
+    "tableB": "data/dirty_dblp_scholar/tableB.csv",
+    "trainset": "data/dirty_dblp_scholar/train.csv",
+    "validset": "data/dirty_dblp_scholar/valid.csv",
+    "testset": "data/dirty_dblp_scholar/test.csv",
+    "number_feature_columns": ["year"]
+  },
+  {
+    "name": "dirty_walmart_amazon",
+    "task_type": "classification",
+    "vocab": ["0", "1"],
+    "tableA": "data/dirty_walmart_amazon/tableA.csv",
+    "tableB": "data/dirty_walmart_amazon/tableB.csv",
+    "trainset": "data/dirty_walmart_amazon/train.csv",
+    "validset": "data/dirty_walmart_amazon/valid.csv",
+    "testset": "data/dirty_walmart_amazon/test.csv",
+    "number_feature_columns": ["year"]
   }
 ]
