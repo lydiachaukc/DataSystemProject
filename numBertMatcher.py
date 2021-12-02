@@ -52,7 +52,7 @@ class NumBertMatcher(BertForSequenceClassification):
         # calculate cossine similiary of numeric data
         numerical_features = self.cos(
             numerical_featuresA,
-            numerical_featuresB)
+            numerical_featuresB).view(-1,1)
         
         numerical_features = self.norm_num_batch(numerical_features)
         
