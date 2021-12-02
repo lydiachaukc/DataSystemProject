@@ -4,6 +4,7 @@ Created on Sun Nov 14 18:58:56 2021
 
 @author: lydia
 """
+import pandas as pd
 import torch
 import random
 import numpy as np
@@ -26,7 +27,9 @@ def train_and_valid_NumBertMatcher(trainset,
                                    lm,
                                    learning_rate,
                                    num_hidden_lyr,
-                                   output_directory = "/logger"):
+                                   output_directory = "results"):
+    
+    output = pd.read_csv(output_directory + "/result.csv")
     device = setup_cuda()
     
     # setting seed
@@ -43,7 +46,7 @@ def train_and_valid_NumBertMatcher(trainset,
     
     numbert_config = build_bert_config(
         trainset.combined_text_data.shape[1],
-        trainset.combined_numeric_data.shape[1],
+        trainset.numeric_dataA.shape[1],
         lm,
         num_hidden_lyr)
     
@@ -60,17 +63,14 @@ def train_and_valid_NumBertMatcher(trainset,
     scheduler = get_linear_schedule_with_warmup(optimizer, 
                                                 num_warmup_steps = 0, # Default value in run_glue.py
                                                 num_training_steps = len(train_dataloader) * epochs)
-    
-    time = datetime.now().strftime("%d_%m_%Y_%H_%M")
-    summary_writer = SummaryWriter(output_directory + "/" + time)
+    today_date = str(pd.Timestamp.today().date())
+    summary_writer = SummaryWriter(output_directory + "/" + today_date)
     summary_writer.add_text('NumBerMatcher', 'Recording loss data for NumBerMatcher', 0)
     
     '''
     Training NumBert
     '''
     numBertMatcher_model.train()
-    
-    total_t0 = time.time()
 
     for epoch in range(epochs):
         print("")
@@ -86,14 +86,16 @@ def train_and_valid_NumBertMatcher(trainset,
     
             b_input_ids = batch[0].to(device)
             b_input_mask = batch[1].to(device) 
-            b_numer_feats = batch[2].to(device)
-            b_labels = batch[3].to(device)
-            b_input_segment = batch[4].to(device)
+            b_numer_featsA = batch[2].to(device)
+            b_numer_featsB = batch[3].to(device)
+            b_labels = batch[4].to(device)
+            b_input_segment = batch[5].to(device)
     
             numBertMatcher_model.zero_grad()        
     
             result = numBertMatcher_model(
-                numerical_features = b_numer_feats,
+                numerical_featuresA = b_numer_featsA,
+                numerical_featuresB = b_numer_featsB,
                 input_ids = b_input_ids,
                 attention_mask = b_input_mask,
                 labels = b_labels,
@@ -114,14 +116,12 @@ def train_and_valid_NumBertMatcher(trainset,
             loss_per_sample = loss.item()/ batch_size
             print("training step:", step, " loss:", loss_per_sample)
             summary_writer.add_scalar("training ", scalar_value = loss_per_sample , global_step = step)
+            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "training")
             
         avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)
         print("  Average training loss: {0:.2f}".format(avg_train_loss))
         summary_writer.add_scalar("total training ", scalar_value = avg_train_loss , global_step = epoch)
-        
-        #print("  Training epcoh took: {:}".format(format_time(time.time() - epoch_t0)))
-        
-    #print("  Total training took: {:}".format(format_time(time.time() - total_t0)))
+        output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average training")
     
         '''
         Validating NumBert
@@ -133,13 +133,15 @@ def train_and_valid_NumBertMatcher(trainset,
             
             b_input_ids = batch[0].to(device)
             b_input_mask = batch[1].to(device) 
-            b_numer_feats = batch[2].to(device)
-            b_labels = batch[3].to(device)
-            b_input_segment = batch[4].to(device)
+            b_numer_featsA = batch[2].to(device)
+            b_numer_featsB = batch[3].to(device)
+            b_labels = batch[4].to(device)
+            b_input_segment = batch[5].to(device)
             
             with torch.no_grad():   
                 result = numBertMatcher_model(
-                    numerical_features = b_numer_feats,
+                    numerical_featuresA = b_numer_featsA,
+                    numerical_featuresB = b_numer_featsB,
                     input_ids = b_input_ids,
                     attention_mask = b_input_mask,
                     labels = b_labels,
@@ -152,26 +154,22 @@ def train_and_valid_NumBertMatcher(trainset,
             
             print("validation step:", step, " loss:", loss_per_sample)
             summary_writer.add_scalar("validating ", scalar_value = loss_per_sample , global_step = step)
+            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "validation")
             
         avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
         print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
         summary_writer.add_scalar("total validating ", scalar_value = avg_valid_loss , global_step = epoch)
+        output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average validation")
         
     summary_writer.close()
-        
-def setup_cuda():
-  if torch.cuda.is_available():    
-      print('Running on GPU')
-      return torch.device("cuda") 
-  else:
-      print('Running on CPU')
-      return torch.device("cpu")
+    output.to_csv(output_directory + "/" + today_date, index=False)
 
 def prepare_data_loader(dataset,batch_size):
     tensor_dataset = TensorDataset(
             dataset.combined_text_data,
             dataset.text_attention_mask, 
-            dataset.combined_numeric_data, 
+            dataset.numeric_dataA,
+            dataset.numeric_dataB,
             dataset.labels,
             dataset.text_segment_ids
             )
@@ -199,3 +197,14 @@ def build_bert_config(text_input_dimension, num_input_dimension, lm, num_hidden_
     config.num_hidden_lyr = num_hidden_lyr
     config.lm = lm
     return config
+        
+def setup_cuda():
+  if torch.cuda.is_available():    
+      print('Running on GPU')
+      return torch.device("cuda") 
+  else:
+      print('Running on CPU')
+      return torch.device("cpu")
+
+def add_record(dataframe, time, model, epoch, batch, loss, purpose):
+    return dataframe.append({"Time": time, "Model": model, "Epochs": epoch, "Batch": batch, "Loss": loss, "Dataset": purpose}, ignore_index=True)

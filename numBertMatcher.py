@@ -12,6 +12,7 @@ from torch.nn import CrossEntropyLoss
 from transformers import BertForSequenceClassification
 from classification_NN import classification_NN
 from transformers.modeling_outputs import SequenceClassifierOutput
+from torch.nn import CosineSimilarity
 
 class NumBertMatcher(BertForSequenceClassification):
     """
@@ -29,10 +30,12 @@ class NumBertMatcher(BertForSequenceClassification):
             )
         self.norm_num_batch = nn.BatchNorm1d(config.num_input_dimension).double()
         self.init_weights()
+        self.cos = CosineSimilarity()
               
     def forward(
             self,
-            numerical_features,
+            numerical_featuresA,
+            numerical_featuresB,
             input_ids,
             attention_mask,
             labels,
@@ -46,7 +49,11 @@ class NumBertMatcher(BertForSequenceClassification):
             )
         cls_output = self.dropout(output[1])
         
-        # batch normalization
+        # calculate cossine similiary of numeric data
+        numerical_features = self.cos(
+            numerical_featuresA,
+            numerical_featuresB)
+        
         numerical_features = self.norm_num_batch(numerical_features)
         
         #concat everything to a vector
