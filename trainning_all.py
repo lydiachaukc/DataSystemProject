@@ -16,7 +16,8 @@ sys.path.insert(0, "Snippext_public")
 
 from preprocess_data.load_and_preprocess import Load_and_preprocess
 from build_dataset import build_tensor_dataset
-from train_NumBertMatcher import train_and_valid_NumBertMatcher
+from train_NumBertMatcher_crossencoder import train_and_valid_NumBertMatcher_crossencoder
+from train_NumBertMatcher_bicoder import train_and_valid_NumBertMatcher_biencoder
 from train_Bert import train_and_valid_BertMatcher
 
 if __name__=="__main__":
@@ -36,9 +37,12 @@ if __name__=="__main__":
     parser.add_argument("--da", type=str, default=None)
     parser.add_argument("--dk", type=str, default=None)
     parser.add_argument("--output_directory", type=str, default="results")
-
+    parser.add_argument("--running_NumBertMatcher_crossencoder", type=bool, default=True)
+    parser.add_argument("--running_NumBertMatcher_biencoder", type=bool, default=False)
+    parser.add_argument("--running_BertMatcher", type=bool, default=True)
     hp = parser.parse_args()
 
+    
     # set seeds
     seed = hp.run_id
     random.seed(seed)
@@ -47,9 +51,11 @@ if __name__=="__main__":
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
 
+    
     # only a single task for baseline
     task = hp.task
 
+    
     # load task configuration
     configs = json.load(open('configs.json'))
     configs = {conf['name'] : conf for conf in configs}
@@ -60,7 +66,8 @@ if __name__=="__main__":
     testset_path = config['testset']
     number_feature_columns = config['number_feature_columns']
     
-    # preprocess all input data in datasetA and datasetb
+    
+    # preprocess all input data in datasetA and datasetB
     preprocessed_data = Load_and_preprocess(
         config,
         hp.lm,
@@ -68,17 +75,18 @@ if __name__=="__main__":
         data_was_preprocessed = hp.data_was_preprocessed,
         store_preprocessed_data = hp.save_preprocessed_data)
     
-    # build train/dev/test datasets
-    trainset = build_tensor_dataset(preprocessed_data, trainset_path)
-    validset = build_tensor_dataset(preprocessed_data, validset_path)
-    testset = build_tensor_dataset(preprocessed_data, testset_path)
     
     '''
-    Training and validating NumBertMatch
+    Training and validating NumBertMatch crossencoder model
     '''
-    running_NumBertMatcher = True
-    if running_NumBertMatcher:
-        train_and_valid_NumBertMatcher(
+    if hp.running_NumBertMatcher_crossencoder:
+        # Build train/validate/test datasets for crossencoder
+        trainset = build_tensor_dataset(preprocessed_data, trainset_path, is_cross_encoder=True)
+        validset = build_tensor_dataset(preprocessed_data, validset_path, is_cross_encoder=True)
+        testset = build_tensor_dataset(preprocessed_data, testset_path, is_cross_encoder=True)
+        
+        # Train, validate and test model
+        train_and_valid_NumBertMatcher_crossencoder(
             trainset,
             validset,
             epochs = hp.n_epochs,
@@ -87,11 +95,32 @@ if __name__=="__main__":
             learning_rate = hp.lr,
             num_hidden_lyr = 2)
     
+    
+    '''
+    Training and validating NumBertMatch biencoder model
+    '''
+    if hp.running_NumBertMatcher_biencoder:
+        # Build train/validate/test datasets for biencoder
+        trainset = build_tensor_dataset(preprocessed_data, trainset_path, is_cross_encoder=False)
+        validset = build_tensor_dataset(preprocessed_data, validset_path, is_cross_encoder=False)
+        testset = build_tensor_dataset(preprocessed_data, testset_path, is_cross_encoder=False)
+        
+        # Train, validate and test model
+        train_and_valid_NumBertMatcher_biencoder(
+            trainset,
+            validset,
+            epochs = hp.n_epochs,
+            batch_size = hp.batch_size,
+            lm = hp.lm,
+            learning_rate = hp.lr,
+            num_hidden_lyr = 2)
+    
+    
     '''
     Training and validating basic Bert model
     '''
-    running_BertMatcher = True
-    if running_BertMatcher:
+    if hp.running_BertMatcher:
+        # Preprocess all data again, so that numeric features are treated as text features
         preprocessed_data = Load_and_preprocess(
         config,
         hp.lm,
@@ -99,11 +128,12 @@ if __name__=="__main__":
         data_was_preprocessed = False,
         store_preprocessed_data = False)
     
-        # build train/dev/test datasets
+        # Build train/validate/test datasets
         trainset = build_tensor_dataset(preprocessed_data, trainset_path)
         validset = build_tensor_dataset(preprocessed_data, validset_path)
         testset = build_tensor_dataset(preprocessed_data, testset_path)
         
+        # Train, validate and test model
         train_and_valid_BertMatcher(
             trainset,
             validset,
