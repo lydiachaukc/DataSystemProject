@@ -20,7 +20,7 @@ lm_mp = {'roberta': 'roberta-base',
          'distilbert': 'distilbert-base-uncased',
          'bert': 'bert-base-uncased'}
 
-def train_and_valid_BertMatcher(trainset,
+def train_valid_test_BertMatcher(trainset,
                                 validset,
                                 epochs, 
                                 batch_size,
@@ -59,7 +59,7 @@ def train_and_valid_BertMatcher(trainset,
                                                 num_warmup_steps = 0, # Default value in run_glue.py
                                                 num_training_steps = len(train_dataloader) * epochs)
     '''
-    Training NumBert
+    Training model
     '''
     bert_model.train()
     
@@ -106,8 +106,6 @@ def train_and_valid_BertMatcher(trainset,
             # recording loss result
             loss_per_sample = loss.item()/ batch_size
             print("training step:", step, " loss:", loss_per_sample)
-            summary_writer.add_scalar("training ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "training", data_name)
         
         # recording loss result
         avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)
@@ -117,7 +115,7 @@ def train_and_valid_BertMatcher(trainset,
         
         
         '''
-        Validating NumBert
+        Testing model
         '''
         bert_model.eval()
         
@@ -142,15 +140,47 @@ def train_and_valid_BertMatcher(trainset,
             
             # recording loss result
             loss_per_sample = result['loss'].item() / batch_size
-            print("validation step:", step, " loss:", loss_per_sample)
-            summary_writer.add_scalar("validating ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "bert", epoch, step, loss_per_sample, "validation", data_name)
+            print("testing step:", step, " loss:", loss_per_sample)
             
         # recording loss result
         avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
-        print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
-        summary_writer.add_scalar("total validating ", scalar_value = avg_valid_loss , global_step = epoch)
-        output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average validation", data_name)
+        print("  Average testing loss: {0:.2f}".format(avg_valid_loss))
+        summary_writer.add_scalar("total testing ", scalar_value = avg_valid_loss , global_step = epoch)
+        output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average testing", data_name)
+        
+    '''
+    Validating model
+    '''
+    bert_model.eval()
+    
+    total_valid_loss = 0
+    
+    for step, batch in enumerate(valid_dataloader):
+        
+        b_input_ids = batch[0].to(device)
+        b_input_mask = batch[1].to(device) 
+        b_labels = batch[2].to(device)
+        b_input_segment = batch[3].to(device)
+        
+        with torch.no_grad():   
+            result = bert_model(
+                input_ids = b_input_ids,
+                attention_mask = b_input_mask,
+                labels = b_labels,
+                token_type_ids  = b_input_segment
+                )
+
+        total_valid_loss += result['loss'].item()
+        
+        # recording loss result
+        loss_per_sample = result['loss'].item() / batch_size
+        print("validation step:", step, " loss:", loss_per_sample)
+        
+    # recording loss result
+    avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
+    print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
+    summary_writer.add_scalar("total validating ", scalar_value = avg_valid_loss , global_step = epoch)
+    output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average validation", data_name)
     
     output.to_csv(output_directory + "/result.csv", index=False)
     summary_writer.close()

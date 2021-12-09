@@ -16,9 +16,9 @@ sys.path.insert(0, "Snippext_public")
 
 from preprocess_data.load_and_preprocess import Load_and_preprocess
 from build_dataset import build_tensor_dataset
-from train_NumBertMatcher_crossencoder import train_and_valid_NumBertMatcher_crossencoder
-from train_NumBertMatcher_bicoder import train_and_valid_NumBertMatcher_biencoder
-from train_Bert import train_and_valid_BertMatcher
+from train_NumBertMatcher_crossencoder import train_valid_test_NumBertMatcher_crossencoder
+from train_NumBertMatcher_bicoder import train_valid_test_NumBertMatcher_bicoder
+from train_Bert import train_valid_test_BertMatcher
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
@@ -86,7 +86,7 @@ if __name__=="__main__":
         testset = build_tensor_dataset(preprocessed_data, testset_path, is_cross_encoder=True)
         
         # Train, validate and test model
-        train_and_valid_NumBertMatcher_crossencoder(
+        train_valid_test_NumBertMatcher_crossencoder(
             trainset,
             validset,
             epochs = hp.n_epochs,
@@ -106,7 +106,7 @@ if __name__=="__main__":
         testset = build_tensor_dataset(preprocessed_data, testset_path, is_cross_encoder=False)
         
         # Train, validate and test model
-        train_and_valid_NumBertMatcher_biencoder(
+        train_valid_test_NumBertMatcher_biencoder(
             trainset,
             validset,
             epochs = hp.n_epochs,
@@ -134,7 +134,7 @@ if __name__=="__main__":
         testset = build_tensor_dataset(preprocessed_data, testset_path)
         
         # Train, validate and test model
-        train_and_valid_BertMatcher(
+        train_valid_test_BertMatcher(
             trainset,
             validset,
             epochs=hp.n_epochs,

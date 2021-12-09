@@ -40,7 +40,7 @@ class Preprocess_text_data:
             print("col:", col)
             tokenized_dataset["all_text_data"] += dataset[col].apply(
                 lambda elem: self.tokenizer.convert_tokens_to_ids(
-                    self.tokenizer.tokenize(self.tokenize_field(elem)), col))
+                    self.tokenizer.tokenize(self.tokenize_field(elem, col))))
         tokenized_dataset["len"] = tokenized_dataset["all_text_data"].apply(lambda elem: len(elem))
         
         return tokenized_dataset[["all_text_data","len"]]
@@ -64,13 +64,13 @@ class Preprocess_text_data:
     def build_datset_for_bi_encoder(self, textdata, segment_id = 0):
         tokens, segment_ids = self.create_tensor_for_single_textdata(textdata, segment_id)
         attention_mask = self.build_attention_mask(tokens)
-        return tokens, attention_mask, segment_ids
+        return tokens, attention_mask
     
     
     def build_datset_for_cross_encoder(self, textdataA, textdataB):
-        tokens = self.create_tensor_for_paired_textdata(textdataA, textdataB)
+        tokens, segment_ids = self.create_tensor_for_paired_textdata(textdataA, textdataB)
         attention_mask = self.build_attention_mask(tokens)
-        return tokens, attention_mask
+        return tokens, attention_mask, segment_ids
     
     
     def create_tensor_for_single_textdata(self, textdata, segment_id, max_len=512, label_token_len=3):

@@ -19,7 +19,7 @@ lm_mp = {'roberta': 'roberta-base',
          'distilbert': 'distilbert-base-uncased',
          'bert': 'bert-base-uncased'}
 
-def train_and_valid_NumBertMatcher_crossencoder(trainset,
+def train_valid_test_NumBertMatcher_crossencoder(trainset,
                                    validset,
                                    epochs,
                                    batch_size,
@@ -60,14 +60,14 @@ def train_and_valid_NumBertMatcher_crossencoder(trainset,
                                                 num_training_steps = len(train_dataloader) * epochs)
     
     '''
-    Training NumBert
+    Training model
     '''
     model.train()
 
     for epoch in range(epochs):
         print("")
         print('======== Epoch {:} / {:} ========'.format(epoch + 1, epochs))
-        print('Training...')
+        print('Training crossencoder...')
         epoch_t0 = time.time()
         
         total_train_loss = 0
@@ -108,8 +108,6 @@ def train_and_valid_NumBertMatcher_crossencoder(trainset,
             # recording loss result
             loss_per_sample = loss.item()/ batch_size
             print("training step:", step, " loss:", loss_per_sample)
-            summary_writer.add_scalar("training ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "training", data_name)
             
         # recording loss result
         avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)
@@ -119,7 +117,7 @@ def train_and_valid_NumBertMatcher_crossencoder(trainset,
     
     
         '''
-        Validating NumBert
+        Validating model
         '''
         model.eval()
         
@@ -145,13 +143,9 @@ def train_and_valid_NumBertMatcher_crossencoder(trainset,
     
             total_valid_loss += result['loss'].item()
             
-            loss_per_sample = result['loss'].item() / batch_size
-            
-            
             # recording loss result
+            loss_per_sample = result['loss'].item() / batch_size
             print("validation step:", step, " loss:", loss_per_sample)
-            summary_writer.add_scalar("validating ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "validation", data_name)
         
         
         # recording loss result
@@ -161,11 +155,45 @@ def train_and_valid_NumBertMatcher_crossencoder(trainset,
         output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average validation", data_name)
         
     
+    '''
+    Testing model
+    '''
+    model.eval()
+    
+    total_valid_loss = 0
+    for step, batch in enumerate(valid_dataloader):
+        
+        b_input_ids = batch[0].to(device)
+        b_input_mask = batch[1].to(device) 
+        b_numer_featsA = batch[2].to(device)
+        b_numer_featsB = batch[3].to(device)
+        b_labels = batch[4].to(device)
+        b_input_segment = batch[5].to(device)
+        
+        with torch.no_grad():   
+            result = model(
+                numerical_featuresA = b_numer_featsA,
+                numerical_featuresB = b_numer_featsB,
+                input_ids = b_input_ids,
+                attention_mask = b_input_mask,
+                labels = b_labels,
+                token_type_ids  = b_input_segment
+                )
+
+        total_valid_loss += result['loss'].item()
+
+    # recording loss result
+    avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
+    print("  Average testing loss: {0:.2f}".format(avg_valid_loss))
+    summary_writer.add_scalar("total testing ", scalar_value = avg_valid_loss , global_step = epoch)
+    output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average testing", data_name)
+        
+    
     summary_writer.close()
     output.to_csv(output_directory + "/result.csv" , index=False)
 
 
-def prepare_data_loader(dataset,batch_size):
+def prepare_data_loader(dataset, batch_size, random_sampler = True):
     tensor_dataset = TensorDataset(
             dataset.combined_text_data,
             dataset.text_attention_mask, 
