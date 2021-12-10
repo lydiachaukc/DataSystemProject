@@ -16,12 +16,10 @@ from tensorboardX import SummaryWriter
 from utils import format_time, setup_cuda, add_record
 from NumBertMatcher_biencoder import NumBertMatcher_biencoder
 
-lm_mp = {'roberta': 'roberta-base',
-         'distilbert': 'distilbert-base-uncased',
-         'bert': 'bert-base-uncased'}
 
 def train_valid_test_NumBertMatcher_bicoder(trainset,
                                    validset,
+                                   testset,
                                    epochs,
                                    batch_size,
                                    lm,
@@ -41,16 +39,16 @@ def train_valid_test_NumBertMatcher_bicoder(trainset,
     # Creating Dataloader
     train_dataloader = prepare_data_loader(trainset, batch_size)
     valid_dataloader = prepare_data_loader(validset, batch_size)
+    test_dataloader = prepare_data_loader(testset, batch_size)
     
     # Creating BERT configuration
     numbert_config = build_bert_config(
-        trainset.combined_text_data.shape[1],
         trainset.numeric_dataA.shape[1],
         lm,
         num_hidden_lyr)
     
     
-    model = NumBertMatcher_biencoder.from_pretrained(lm_mp[lm], config = numbert_config)
+    model = NumBertMatcher_biencoder.from_pretrained(lm, config = numbert_config)
     model.to(device)
 
     optimizer = AdamW(model.parameters(),
@@ -174,7 +172,7 @@ def train_valid_test_NumBertMatcher_bicoder(trainset,
     model.eval()
     
     total_valid_loss = 0
-    for step, batch in enumerate(valid_dataloader):
+    for step, batch in enumerate(test_dataloader):
         
         b_input_ids = batch[0].to(device)
         b_input_mask = batch[1].to(device) 
@@ -224,7 +222,7 @@ def prepare_data_loader(dataset,batch_size):
         drop_last = True
     )
 
-def build_bert_config(text_input_dimension, num_input_dimension, lm, num_hidden_lyr):
+def build_bert_config(num_input_dimension, lm, num_hidden_lyr):
     config = BertConfig.from_pretrained(
         'bert-base-uncased',
         num_labels=2,
@@ -233,5 +231,4 @@ def build_bert_config(text_input_dimension, num_input_dimension, lm, num_hidden_
     config.num_input_dimension = num_input_dimension
     config.num_hidden_lyr = num_hidden_lyr
     config.lm = lm
-    config.similarity_method = "cos"
     return config

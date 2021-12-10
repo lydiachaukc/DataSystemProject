@@ -16,12 +16,10 @@ from tensorboardX import SummaryWriter
 
 from utils import format_time, setup_cuda, add_record
 
-lm_mp = {'roberta': 'roberta-base',
-         'distilbert': 'distilbert-base-uncased',
-         'bert': 'bert-base-uncased'}
 
 def train_valid_test_BertMatcher(trainset,
-                                validset,
+                                validset,          
+                                testset,
                                 epochs, 
                                 batch_size,
                                 lm,
@@ -40,6 +38,7 @@ def train_valid_test_BertMatcher(trainset,
     # Creating Dataloader
     train_dataloader = prepare_data_loader(trainset, batch_size)
     valid_dataloader = prepare_data_loader(validset, batch_size)
+    test_dataloader = prepare_data_loader(testset, batch_size)
     
     # Creating BERT configuration
     bert_config = BertConfig.from_pretrained(
@@ -48,7 +47,7 @@ def train_valid_test_BertMatcher(trainset,
     )
     
     # Get model and send it to CPU/GPU
-    bert_model = BertForSequenceClassification.from_pretrained(lm_mp[lm], config = bert_config)
+    bert_model = BertForSequenceClassification.from_pretrained(lm, config = bert_config)
     bert_model.to(device)
 
     optimizer = AdamW(bert_model.parameters(),
@@ -115,7 +114,7 @@ def train_valid_test_BertMatcher(trainset,
         
         
         '''
-        Testing model
+        Validating model
         '''
         bert_model.eval()
         
@@ -149,13 +148,13 @@ def train_valid_test_BertMatcher(trainset,
         output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average testing", data_name)
         
     '''
-    Validating model
+    Testing model
     '''
     bert_model.eval()
     
     total_valid_loss = 0
     
-    for step, batch in enumerate(valid_dataloader):
+    for step, batch in enumerate(test_dataloader):
         
         b_input_ids = batch[0].to(device)
         b_input_mask = batch[1].to(device) 
