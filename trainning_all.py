@@ -16,9 +16,6 @@ sys.path.insert(0, "Snippext_public")
 
 from preprocess_data.load_and_preprocess import Load_and_preprocess
 from build_dataset import build_tensor_dataset
-from train_NumBertMatcher_crossencoder import train_valid_test_NumBertMatcher_crossencoder
-from train_NumBertMatcher_bicoder import train_valid_test_NumBertMatcher_bicoder
-from train_Bert import train_valid_test_BertMatcher
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
@@ -39,7 +36,7 @@ if __name__=="__main__":
     parser.add_argument("--output_directory", type=str, default="results")
     parser.add_argument("--running_NumBertMatcher_crossencoder", type=bool, default=True)
     parser.add_argument("--running_NumBertMatcher_biencoder", type=bool, default=False)
-    parser.add_argument("--running_BertMatcher", type=bool, default=True)
+    parser.add_argument("--running_BertMatcher", type=bool, default=False)
     hp = parser.parse_args()
 
     
@@ -80,6 +77,8 @@ if __name__=="__main__":
     Training and validating NumBertMatch crossencoder model
     '''
     if hp.running_NumBertMatcher_crossencoder:
+        from train_NumBertMatcher_crossencoder import train_valid_test_NumBertMatcher_crossencoder
+        
         # Build train/validate/test datasets for crossencoder
         trainset = build_tensor_dataset(preprocessed_data, trainset_path, is_cross_encoder=True)
         validset = build_tensor_dataset(preprocessed_data, validset_path, is_cross_encoder=True)
@@ -100,13 +99,14 @@ if __name__=="__main__":
     Training and validating NumBertMatch biencoder model
     '''
     if hp.running_NumBertMatcher_biencoder:
+        from train_NumBertMatcher_bicoder import train_valid_test_NumBertMatcher_bicoder
         # Build train/validate/test datasets for biencoder
         trainset = build_tensor_dataset(preprocessed_data, trainset_path, is_cross_encoder=False)
         validset = build_tensor_dataset(preprocessed_data, validset_path, is_cross_encoder=False)
         testset = build_tensor_dataset(preprocessed_data, testset_path, is_cross_encoder=False)
         
         # Train, validate and test model
-        train_valid_test_NumBertMatcher_biencoder(
+        train_valid_test_NumBertMatcher_bicoder(
             trainset,
             validset,
             epochs = hp.n_epochs,
@@ -120,6 +120,7 @@ if __name__=="__main__":
     Training and validating basic Bert model
     '''
     if hp.running_BertMatcher:
+        from train_Bert import train_valid_test_BertMatcher
         # Preprocess all data again, so that numeric features are treated as text features
         preprocessed_data = Load_and_preprocess(
         config,
