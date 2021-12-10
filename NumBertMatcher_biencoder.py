@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sat Nov 13 14:48:10 2021
+Created on Sun Dec  5 16:39:40 2021
 
 @author: lydia
 """
@@ -8,13 +8,12 @@ import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 
-#from transformers import AutoModel
 from transformers import BertForSequenceClassification
 from classification_NN import classification_NN
 from transformers.modeling_outputs import SequenceClassifierOutput
 from torch.nn import CosineSimilarity
 
-class NumBertMatcher_crossencoder(BertForSequenceClassification):
+class NumBertMatcher_biencoder(BertForSequenceClassification):
     """
     reference BertForTokenClassification class in the hugging face library
     https://huggingface.co/transformers/_modules/transformers/modeling_bert.html#BertForSequenceClassification
@@ -28,7 +27,6 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
             dropout_prob = 0.8,
             bn = nn.BatchNorm1d(config.num_input_dimension)
             )
-        
         self.norm_num_batch = nn.BatchNorm1d(config.num_input_dimension)
         self.init_weights()
         
@@ -42,31 +40,37 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
             self,
             numerical_featuresA,
             numerical_featuresB,
-            input_ids,
-            attention_mask,
-            labels,
-            token_type_ids):
+            input_idsA,
+            attention_maskA,
+            input_idsB,
+            attention_maskB,
+            labels):
         
-        # compute the cls embedding of the text features
-        output = self.bert(
-            input_ids = input_ids,
-            attention_mask = attention_mask,
-            token_type_ids = token_type_ids
+        # Compute the cls embedding of the text features
+        textoutputA = self.bert(
+            input_ids = input_idsA,
+            attention_mask = attention_maskA
             )
-        cls_output = self.dropout(output[1])
+        cls_output_A = self.dropout(textoutputA[1])
+                
+        textoutputB = self.bert(
+            input_ids = input_idsB,
+            attention_mask = attention_maskB
+            )
+        cls_output_B = self.dropout(textoutputB[1])
         
-        # calculate cossine similiary of numeric features
-        numerical_features = self.calculate_similiarity(
-            numerical_featuresA,
-            numerical_featuresB).view(-1,1)
+        # Combine all the text embeddings with numeric features
+        combined_features_A = torch.cat((cls_output_A, numerical_featuresA), dim=1)
+        combined_features_B = torch.cat((cls_output_B, numerical_featuresB), dim=1)
         
-        numerical_features = self.norm_num_batch(numerical_features)
-        
-        # Combined the text embedding with the similarity factor of numeric features
-        all_features = torch.cat((cls_output, numerical_features), dim=1)
+        # Calculate similiary of paired data
+        similarity = self.calculate_similiarity(
+            combined_features_A,
+            combined_features_B).view(-1,1)
+        similarity = self.norm_num_batch(similarity)
         
         # Calculate the logits and loss
-        logits = self.classifier(all_features)
+        logits = self.classifier(similarity)
         if labels is not None:
             loss_fct  = CrossEntropyLoss()
             labels = labels.long()

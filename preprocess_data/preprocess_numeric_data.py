@@ -10,16 +10,16 @@ class Preprocess_numeric_data:
     """
     def __init__(self, dataset, store_preprocess_data = False):
         self.dataset = dataset
-        self.handle_dirty_numeric_data_and_normalize()
+        self.handle_dirty_numeric_data()
         
-    def handle_dirty_numeric_data_and_normalize(self):
+    def handle_dirty_numeric_data(self):
         for name in self.dataset.columns:
             column = self.dataset[name]
-            # method 1: null all non-numeric data
-            #column[(not column.str.isnumeric())] = None
             
-            # method 2: try to guess the number
+            # # Normalize the data
+            # self.dataset[name] = (column-column.mean())/column.std()
+            # self.dataset[name] = self.dataset[name].fillna(0)
             
-            # normalize the data
-            self.dataset[name] = (column-column.mean())/column.std()
-            self.dataset[name] = self.dataset[name].fillna(0)
+            
+            # Fill missing data with column mean
+            self.dataset[name] = self.dataset[name].fillna(column.mean())

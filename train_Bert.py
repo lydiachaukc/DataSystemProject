@@ -5,8 +5,6 @@ Created on Sun Nov 14 18:58:56 2021
 @author: lydia
 """
 import torch
-import random
-import numpy as np
 import time
 import datetime
 import pandas as pd
@@ -16,11 +14,13 @@ from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 from transformers import BertForSequenceClassification
 from tensorboardX import SummaryWriter
 
+from utils import format_time, setup_cuda, add_record
+
 lm_mp = {'roberta': 'roberta-base',
          'distilbert': 'distilbert-base-uncased',
          'bert': 'bert-base-uncased'}
 
-def train_and_valid_BertMatcher(trainset,
+def train_valid_test_BertMatcher(trainset,
                                 validset,
                                 epochs, 
                                 batch_size,
@@ -29,27 +29,27 @@ def train_and_valid_BertMatcher(trainset,
                                 num_hidden_lyr,
                                 output_directory = "results",
                                 data_name = ""):
+    # Set output format
     output = pd.read_csv(output_directory + "/result.csv")
+    today_date = str(pd.Timestamp.today().date())
+    summary_writer = SummaryWriter(output_directory)
+    summary_writer.add_text('Bert', 'Recording loss data for basic Bert Model', 0)
+    
     device = setup_cuda()
     
-    seed_val = 42
-    random.seed(seed_val)
-    np.random.seed(seed_val)
-    torch.manual_seed(seed_val)
-    torch.cuda.manual_seed_all(seed_val)
-    
+    # Creating Dataloader
     train_dataloader = prepare_data_loader(trainset, batch_size)
     valid_dataloader = prepare_data_loader(validset, batch_size)
     
+    # Creating BERT configuration
     bert_config = BertConfig.from_pretrained(
         'bert-base-uncased',
         num_labels=2
     )
     
+    # Get model and send it to CPU/GPU
     bert_model = BertForSequenceClassification.from_pretrained(lm_mp[lm], config = bert_config)
-    if torch.cuda.is_available(): 
-        bert_model.to(device)
-        print("model to device")
+    bert_model.to(device)
 
     optimizer = AdamW(bert_model.parameters(),
       lr = learning_rate, 
@@ -59,13 +59,10 @@ def train_and_valid_BertMatcher(trainset,
                                                 num_warmup_steps = 0, # Default value in run_glue.py
                                                 num_training_steps = len(train_dataloader) * epochs)
     '''
-    Training NumBert
+    Training model
     '''
     bert_model.train()
     
-    today_date = str(pd.Timestamp.today().date())
-    summary_writer = SummaryWriter(output_directory)
-    summary_writer.add_text('Bert', 'Recording loss data for basic Bert Model', 0)
     total_t0 = time.time()
     
     for epoch in range(epochs):
@@ -106,11 +103,11 @@ def train_and_valid_BertMatcher(trainset,
             optimizer.step()
             scheduler.step()
             
+            # recording loss result
             loss_per_sample = loss.item()/ batch_size
             print("training step:", step, " loss:", loss_per_sample)
-            summary_writer.add_scalar("training ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "training", data_name)
-    
+        
+        # recording loss result
         avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)
         print("  Average training loss: {0:.2f}".format(avg_train_loss))
         summary_writer.add_scalar("total training ", scalar_value = avg_train_loss , global_step = epoch)
@@ -118,7 +115,7 @@ def train_and_valid_BertMatcher(trainset,
         
         
         '''
-        Validating NumBert
+        Testing model
         '''
         bert_model.eval()
         
@@ -141,27 +138,53 @@ def train_and_valid_BertMatcher(trainset,
     
             total_valid_loss += result['loss'].item()
             
+            # recording loss result
             loss_per_sample = result['loss'].item() / batch_size
+            print("testing step:", step, " loss:", loss_per_sample)
             
-            print("validation step:", step, " loss:", loss_per_sample)
-            summary_writer.add_scalar("validating ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "bert", epoch, step, loss_per_sample, "validation", data_name)
-
+        # recording loss result
         avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
-        print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
-        summary_writer.add_scalar("total validating ", scalar_value = avg_valid_loss , global_step = epoch)
-        output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average validation", data_name)
+        print("  Average testing loss: {0:.2f}".format(avg_valid_loss))
+        summary_writer.add_scalar("total testing ", scalar_value = avg_valid_loss , global_step = epoch)
+        output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average testing", data_name)
+        
+    '''
+    Validating model
+    '''
+    bert_model.eval()
+    
+    total_valid_loss = 0
+    
+    for step, batch in enumerate(valid_dataloader):
+        
+        b_input_ids = batch[0].to(device)
+        b_input_mask = batch[1].to(device) 
+        b_labels = batch[2].to(device)
+        b_input_segment = batch[3].to(device)
+        
+        with torch.no_grad():   
+            result = bert_model(
+                input_ids = b_input_ids,
+                attention_mask = b_input_mask,
+                labels = b_labels,
+                token_type_ids  = b_input_segment
+                )
+
+        total_valid_loss += result['loss'].item()
+        
+        # recording loss result
+        loss_per_sample = result['loss'].item() / batch_size
+        print("validation step:", step, " loss:", loss_per_sample)
+        
+    # recording loss result
+    avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
+    print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
+    summary_writer.add_scalar("total validating ", scalar_value = avg_valid_loss , global_step = epoch)
+    output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average validation", data_name)
     
     output.to_csv(output_directory + "/result.csv", index=False)
     summary_writer.close()
-        
-def setup_cuda():
-  if torch.cuda.is_available():    
-      print('Running on GPU')
-      return torch.device("cuda") 
-  else:
-      print('Running on CPU')
-      return torch.device("cpu")
+
 
 def prepare_data_loader(dataset,batch_size):
     tensor_dataset = TensorDataset(
@@ -177,14 +200,3 @@ def prepare_data_loader(dataset,batch_size):
         batch_size = batch_size,
         drop_last = True
     )
-    
-def format_time(elapsed):
-    '''
-    Takes a time in seconds and returns a string hh:mm:ss
-    '''
-    return str(datetime.timedelta(seconds=int(round((elapsed)))))
-
-def add_record(dataframe, time = "", model = "", epoch = "", batch = "", loss = "", purpose = "", data = ""):
-    return dataframe.append(
-        {"Time": time, "Model": model, "Epochs": epoch, "Batch": batch, "Loss": loss, "Purpose": purpose, "Data":data},
-        ignore_index=True)

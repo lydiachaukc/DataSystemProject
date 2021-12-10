@@ -21,18 +21,18 @@ class classification_NN(nn.Module):
         self.layer_channels = [inputs_dimension] * (1+num_hidden_lyr)
         self.layer_channels += [output_dim]
         
-        self.activation = nn.ReLU().double()
+        self.activation = nn.ReLU()
         
-        final_layer = nn.Linear(self.layer_channels[-2], self.layer_channels[-1]).double()
-        self.weight_init(final_layer).double()
+        final_layer = nn.Linear(self.layer_channels[-2], self.layer_channels[-1])
+        self.weight_init(final_layer)
                 
         self.layers = nn.ModuleList(list(
-            map(self.weight_init, [nn.Linear(self.layer_channels[i], self.layer_channels[i + 1]).double()
+            map(self.weight_init, [nn.Linear(self.layer_channels[i], self.layer_channels[i + 1])
                                     for i in range(len(self.layer_channels) - 2)])))
         self.layers.append(final_layer)
         self.bn = bn
         if self.bn:
-            self.bn = nn.ModuleList([torch.nn.BatchNorm1d(dim).double() for dim in self.layer_channels[1:-1]])
+            self.bn = nn.ModuleList([torch.nn.BatchNorm1d(dim) for dim in self.layer_channels[1:-1]])
         
     def weight_init(self, m):
         torch.nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain("linear"))
