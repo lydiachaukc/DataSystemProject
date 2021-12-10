@@ -21,7 +21,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=str, default="amazon_google")
     parser.add_argument("--run_id", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=4)
+    parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--max_len", type=int, default=256)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--n_epochs", type=int, default=1)
@@ -51,7 +51,6 @@ if __name__=="__main__":
     
     # only a single task for baseline
     task = hp.task
-
     
     # load task configuration
     configs = json.load(open('configs.json'))
@@ -63,11 +62,16 @@ if __name__=="__main__":
     testset_path = config['testset']
     number_feature_columns = config['number_feature_columns']
     
+    lm_mp = {'roberta': 'roberta-base',
+         'distilbert': 'distilbert-base-uncased',
+         'bert': 'bert-base-uncased'}
+    lm = lm_mp[hp.lm]
+    
     
     # preprocess all input data in datasetA and datasetB
     preprocessed_data = Load_and_preprocess(
         config,
-        hp.lm,
+        lm,
         number_feature_columns = number_feature_columns,
         data_was_preprocessed = hp.data_was_preprocessed,
         store_preprocessed_data = hp.save_preprocessed_data)
@@ -88,9 +92,10 @@ if __name__=="__main__":
         train_valid_test_NumBertMatcher_crossencoder(
             trainset,
             validset,
+            testset,
             epochs = hp.n_epochs,
             batch_size = hp.batch_size,
-            lm = hp.lm,
+            lm = lm,
             learning_rate = hp.lr,
             num_hidden_lyr = 2)
     
@@ -109,9 +114,10 @@ if __name__=="__main__":
         train_valid_test_NumBertMatcher_bicoder(
             trainset,
             validset,
+            testset,
             epochs = hp.n_epochs,
             batch_size = hp.batch_size,
-            lm = hp.lm,
+            lm = lm,
             learning_rate = hp.lr,
             num_hidden_lyr = 2)
     
@@ -124,7 +130,7 @@ if __name__=="__main__":
         # Preprocess all data again, so that numeric features are treated as text features
         preprocessed_data = Load_and_preprocess(
         config,
-        hp.lm,
+        lm,
         number_feature_columns = [],
         data_was_preprocessed = False,
         store_preprocessed_data = False)
@@ -138,9 +144,10 @@ if __name__=="__main__":
         train_valid_test_BertMatcher(
             trainset,
             validset,
+            testset,
             epochs=hp.n_epochs,
             batch_size=hp.batch_size,
-            lm=hp.lm,
+            lm = lm,
             learning_rate=hp.lr,
             num_hidden_lyr = 4,
             output_directory = hp.output_directory)

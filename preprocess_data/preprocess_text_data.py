@@ -12,12 +12,7 @@ from transformers import AutoTokenizer
 from torch.nn.utils.rnn import pad_sequence
 import torch
 
-
 stopwords = set(stopwords.words('english'))
-# map lm name to huggingface's pre-trained model names
-lm_mp = {'roberta': 'roberta-base',
-         'distilbert': 'distilbert-base-uncased',
-         'bert': 'bert-base-uncased'}
 
 class Preprocess_text_data:
     """
@@ -25,7 +20,7 @@ class Preprocess_text_data:
     """
     def __init__(self,task_config, lm):
         self.config = task_config
-        self.tokenizer = AutoTokenizer.from_pretrained(lm_mp[lm])
+        self.tokenizer = AutoTokenizer.from_pretrained(lm)
 
     def tokenize_dataset(self, dataset, insert_column_name = True,max_len=256):
         '''
@@ -61,8 +56,8 @@ class Preprocess_text_data:
         return tokens
     
     
-    def build_datset_for_bi_encoder(self, textdata, segment_id = 0):
-        tokens, segment_ids = self.create_tensor_for_single_textdata(textdata, segment_id)
+    def build_datset_for_bi_encoder(self, textdata):
+        tokens = self.create_tensor_for_single_textdata(textdata)
         attention_mask = self.build_attention_mask(tokens)
         return tokens, attention_mask
     
@@ -73,7 +68,7 @@ class Preprocess_text_data:
         return tokens, attention_mask, segment_ids
     
     
-    def create_tensor_for_single_textdata(self, textdata, segment_id, max_len=512, label_token_len=3):
+    def create_tensor_for_single_textdata(self, textdata, max_len=512, label_token_len=3):
         '''
         Convert the dataset of token ids to an equal-width(512 tokens) tensor with zero padding on the right-hand-side
         Also create the segment id tensor
@@ -82,9 +77,12 @@ class Preprocess_text_data:
         max_text_len =  max_len - label_token_len
         tokens = textdata["all_text_data"]
         tokens.apply(lambda text: text[:max_text_len]if len(text) > max_text_len else text)
-         
+        
+        max_len = min(max_len, max(tokens.apply(len)))
         if (len(tokens.iloc[0])<max_len):
             tokens.iloc[0] += [0] * (max_len - len(tokens.iloc[0]))
+        
+        tokens = tokens.apply(lambda row: torch.tensor(row))
         tokens = pad_sequence(tokens.to_list(), batch_first=True)
         
         return tokens
@@ -108,6 +106,7 @@ class Preprocess_text_data:
                 if sentA_len < half_max_text_len:
                     textdataB["all_text_data"].iloc[row] = textdataB[
                         "all_text_data"].iloc[row][0:(max_text_len - sentA_len)]
+                    sentB_len = max_text_len - sentA_len
                     
                 elif sentB_len < half_max_text_len:
                     textdataA["all_text_data"].iloc[row] = textdataA[
@@ -121,10 +120,9 @@ class Preprocess_text_data:
                     textdataB["all_text_data"].iloc[row] = textdataB[
                         "all_text_data"].iloc[row][0:half_max_text_len]
                     
-                    sentA_len = half_max_text_len
+                    sentA_len, sentB_len = half_max_text_len, half_max_text_len
                     
-            sentA_len += 1 # account for the [CLS] token
-            segment_ids += [[0] * (sentA_len) + [1] * (max_text_len - sentA_len)]
+            segment_ids += [[0] * (sentA_len + 1) + [1] * (sentB_len + 2)]
         
         # Combine text data from dataset A and B in the form of
         # [CLS] [dataset A data] [SEP] [dataset B data] [SEP]
@@ -135,6 +133,8 @@ class Preprocess_text_data:
         textdataB = textdataB.reset_index()
         combined_text_data = textdataA["CLS"] + textdataA["all_text_data"] + textdataA["SEP"] + textdataB["all_text_data"] + textdataA["SEP"] 
         
+        max_len = min(max_len, max(combined_text_data.apply(len)))
+                
         # Add zero padding to the right hand size to create equal-length data
         if (len(combined_text_data.iloc[0])<max_len):
             combined_text_data.iloc[0] += [0] * (max_len - len(combined_text_data.iloc[0]))
@@ -147,5 +147,5 @@ class Preprocess_text_data:
         
         return combined_text_data, segment_ids
 
-    def build_attention_mask(self, tensor, max_len=256):
+    def build_attention_mask(self, tensor):
         return tensor==0

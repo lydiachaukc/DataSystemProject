@@ -19,9 +19,16 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
     reference BertForTokenClassification class in the hugging face library
     https://huggingface.co/transformers/_modules/transformers/modeling_bert.html#BertForSequenceClassification
     """
-    def __init__(self, config):
+    def __init__(self, config, similarity_method = "cos"):
         super().__init__(config)
         self.num_labels = config.num_labels
+        
+        if (similarity_method == "cos"):
+            self.calculate_similiarity = CosineSimilarity().view(-1,1)
+            config.num_input_dimension = 1
+        else:
+            self.calculate_similiarity = self.calculate_difference
+            
         self.classifier = classification_NN(
             inputs_dimension = config.num_input_dimension + config.text_input_dimension,
             num_hidden_lyr = config.num_hidden_lyr,
@@ -32,11 +39,7 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
         self.norm_num_batch = nn.BatchNorm1d(config.num_input_dimension)
         self.init_weights()
         
-        similarity_method = "cos"
-        if (similarity_method == "cos"):
-            self.calculate_similiarity = CosineSimilarity()
-        else:
-            self.calculate_similiarity = self.calculate_similiarity
+        
     
     def forward(
             self,
@@ -58,7 +61,7 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
         # calculate cossine similiary of numeric features
         numerical_features = self.calculate_similiarity(
             numerical_featuresA,
-            numerical_featuresB).view(-1,1)
+            numerical_featuresB)
         
         numerical_features = self.norm_num_batch(numerical_features)
         
@@ -79,5 +82,5 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
             logits=logits
             )
     
-    def calculate_difference(tensorA, tensorB):
+    def calculate_difference(self, tensorA, tensorB):
         return tensorA - tensorB

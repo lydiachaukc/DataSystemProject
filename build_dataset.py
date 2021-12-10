@@ -46,10 +46,10 @@ class build_tensor_dataset:
             self.combined_text_data, self.text_attention_mask, self.text_segment_ids = preprocessed_obj.text_preprocesser.build_datset_for_cross_encoder(
                 datasetA_text_data, datasetB_text_data)
         else:
-            self.text_data_A, self.text_attention_maskA = preprocessed_obj.text_preprocesser.build_datset_for_bi_encoder(
-                datasetA_text_data, segment_id=0)
-            self.text_data_B, self.text_attention_maskB = preprocessed_obj.text_preprocesser.build_datset_for_bi_encoder(
-                datasetA_text_data, segment_id=1)
+            self.text_data_A, self.text_attention_mask_A = preprocessed_obj.text_preprocesser.build_datset_for_bi_encoder(
+                datasetA_text_data)
+            self.text_data_B, self.text_attention_mask_B = preprocessed_obj.text_preprocesser.build_datset_for_bi_encoder(
+                datasetA_text_data)
             
         self.numeric_dataA = torch.tensor(datasetA_numeric_data.values, dtype=torch.float32)
         self.numeric_dataB = torch.tensor(datasetB_numeric_data.values, dtype=torch.float32)

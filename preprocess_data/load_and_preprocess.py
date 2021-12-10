@@ -56,7 +56,7 @@ class Load_and_preprocess:
         Populate numeric_columns_names and text_columns_names with
         the corresponding column names based on the elements in the dataset
         '''
-        for col_name in data_frame.columns[1:]:
+        for col_name in data_frame.columns:
             if np.issubdtype(data_frame[col_name].dtype, np.number):
                 self.numeric_columns_names[dataset_name].append(col_name)
             else:
