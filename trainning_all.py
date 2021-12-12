@@ -24,7 +24,7 @@ if __name__=="__main__":
     parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--max_len", type=int, default=256)
     parser.add_argument("--lr", type=float, default=3e-5)
-    parser.add_argument("--n_epochs", type=int, default=1)
+    parser.add_argument("--n_epochs", type=int, default=3)
     parser.add_argument("--save_preprocessed_data", type=bool, default=True)
     parser.add_argument("--data_was_preprocessed", type=bool, default=False)
     parser.add_argument("--save_model", dest="save_model", action="store_true")
@@ -97,7 +97,8 @@ if __name__=="__main__":
             batch_size = hp.batch_size,
             lm = lm,
             learning_rate = hp.lr,
-            num_hidden_lyr = 1)
+            num_hidden_lyr = 2,
+            data_name = hp.task)
     
     
     '''
@@ -119,7 +120,8 @@ if __name__=="__main__":
             batch_size = hp.batch_size,
             lm = lm,
             learning_rate = hp.lr,
-            num_hidden_lyr = 2)
+            num_hidden_lyr = 2,
+            data_name = hp.task)
     
     
     '''
@@ -150,4 +152,5 @@ if __name__=="__main__":
             lm = lm,
             learning_rate=hp.lr,
             num_hidden_lyr = 4,
-            output_directory = hp.output_directory)
+            output_directory = hp.output_directory,
+            data_name = hp.task)
