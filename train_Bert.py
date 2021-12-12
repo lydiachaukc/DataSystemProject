@@ -100,12 +100,12 @@ def train_valid_test_BertMatcher(trainset,
             
             accuracy = calculate_accuracy(b_labels, result['logits']).item()
             num_of_train_match += accuracy * batch_size
-            print("training step:", step, " loss:", loss_per_sample, "accuracy:", accuracy)
+            #print("training step:", step, " loss:", loss_per_sample, "accuracy:", accuracy)
         
         # recording loss result
         number_of_sample = (len(train_dataloader) * batch_size)
-        avg_train_accuracy = num_of_train_match / number_of_sample
-        print("  Average training accuracy: {0:.2f}".format(avg_train_accuracy))
+        avg_train_accuracy = num_of_train_match.float() / number_of_sample
+        print("  Average training accuracy: {0:.5f}".format(avg_train_accuracy))
         output = add_record(output, today_date, "numbert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
         
         # avg_train_loss = total_train_loss / number_of_sample
@@ -143,12 +143,12 @@ def train_valid_test_BertMatcher(trainset,
             accuracy = calculate_accuracy(b_labels, result['logits']).item()
             num_of_valid_match += accuracy * batch_size
             
-            print("validating step:", step, " loss:", loss_per_sample, "accuracy:", accuracy)
+            #print("validating step:", step, " loss:", loss_per_sample, "accuracy:", accuracy)
             
         # recording loss result
         number_of_sample = (len(valid_dataloader) * batch_size)
-        avg_train_accuracy = num_of_valid_match / number_of_sample
-        print("  Average valid accuracy: {0:.2f}".format(avg_train_accuracy))
+        avg_train_accuracy = num_of_valid_match.float() / number_of_sample
+        print("  Average valid accuracy: {0:.5f}".format(avg_train_accuracy))
         output = add_record(output, today_date, "bert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
 
         # avg_valid_loss = total_valid_loss / number_of_sample
@@ -179,16 +179,16 @@ def train_valid_test_BertMatcher(trainset,
                 )
 
         total_test_loss += result['loss'].item()
-        accuracy = calculate_accuracy(batch[2], result['logits'].items)
+        accuracy = calculate_accuracy(b_labels, result['logits']).item()
         num_of_test_match += accuracy * batch_size
         
         # recording loss result
-        print("validation step:", step, " loss:", result['loss'].item() / batch_size, "accuracy:", accuracy)
+        #print("validation step:", step, " loss:", result['loss'].item() / batch_size, "accuracy:", accuracy)
         
     # recording loss result
     number_of_sample = (len(test_dataloader) * batch_size)
-    avg_test_accuracy = num_of_test_match / number_of_sample
-    print("  Average test accuracy: {0:.2f}".format(avg_test_accuracy))
+    avg_test_accuracy = num_of_test_match.float() / number_of_sample
+    print("  Average test accuracy: {0:.5f}".format(avg_test_accuracy))
     output = add_record(output, today_date, "bert", 0, 0, avg_test_accuracy, "avg testing accuracy", data_name)
 
     # avg_test_loss = total_test_loss / number_of_sample
