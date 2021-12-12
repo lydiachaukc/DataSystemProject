@@ -24,7 +24,8 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
         self.num_labels = config.num_labels
         
         if (similarity_method == "cos"):
-            self.calculate_similiarity = CosineSimilarity().view(-1,1)
+            cos = CosineSimilarity()
+            self.calculate_similiarity = lambda a, b: cos(a,b).view(-1,1)
             config.num_input_dimension = 1
         else:
             self.calculate_similiarity = self.calculate_difference
@@ -32,12 +33,13 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
         self.classifier = classification_NN(
             inputs_dimension = config.num_input_dimension + config.text_input_dimension,
             num_hidden_lyr = config.num_hidden_lyr,
-            dropout_prob = 0.8,
+            dropout_prob = 0.2,
             bn = nn.BatchNorm1d(config.num_input_dimension)
             )
         
         self.norm_num_batch = nn.BatchNorm1d(config.num_input_dimension)
         self.init_weights()
+        self.loss_fct  = CrossEntropyLoss()
         
         
     
@@ -68,19 +70,23 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
         # Combined the text embedding with the similarity factor of numeric features
         all_features = torch.cat((cls_output, numerical_features), dim=1)
         
-        # Calculate the logits and loss
+        # Calculate the logits, loss and accuracy
         logits = self.classifier(all_features)
         if labels is not None:
-            loss_fct  = CrossEntropyLoss()
-            labels = labels.long()
-            loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            loss = self.loss_fct(logits.view(-1, self.num_labels), labels.long().view(-1))
         else:
             loss=None
-        
-        return SequenceClassifierOutput(
-            loss=loss,
-            logits=logits
-            )
+                
+        return {
+            'loss': loss,
+            'logits': logits,
+            'accuracy': self.calculate_accuracy(labels, logits)
+            }
     
     def calculate_difference(self, tensorA, tensorB):
         return tensorA - tensorB
+    
+    def calculate_accuracy(self, actual_labels, logits):
+        _, predicted_labels = torch.max(logits, dim = 1)
+        
+        return (actual_labels == predicted_labels).sum().float() / len(actual_labels)
