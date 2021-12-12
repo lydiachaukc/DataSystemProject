@@ -68,6 +68,7 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
         epoch_t0 = time.time()
         
         total_train_loss = 0
+        num_of_match = 0
         for step, batch in enumerate(train_dataloader):
             if step % 100 == 0 and not step == 0:
                 elapsed = str(datetime.timedelta(seconds=int(round((time.time() - epoch_t0)))))
@@ -91,7 +92,7 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
                 token_type_ids  = b_input_segment
                 )
     
-            loss = result['loss']
+            loss = result["loss"]
     
             total_train_loss += loss.item()
     
@@ -104,11 +105,15 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
             
             # recording loss result
             loss_per_sample = loss.item()/ batch_size
-            print("training step:", step, " loss:", loss_per_sample)
+            num_of_match += result["accuracy"].item() *  batch_size
+            print("training step:", step, " loss:", loss_per_sample, "accuracy: ", result["accuracy"].item())
+            
             
         # recording loss result
-        avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)
+        number_of_sample = (len(train_dataloader) * batch_size)
+        avg_train_loss = total_train_loss / number_of_sample
         print("  Average training loss: {0:.2f}".format(avg_train_loss))
+        print("  Average training accuracy: {0:.2f}".format(num_of_match / number_of_sample))
         summary_writer.add_scalar("total training ", scalar_value = avg_train_loss , global_step = epoch)
         output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average training", data_name)
     
@@ -207,6 +212,7 @@ def prepare_data_loader(dataset, batch_size, random_sampler = True):
         drop_last = True
     )
 
+    
 
 def build_bert_config(num_input_dimension, lm, num_hidden_lyr):
     config = BertConfig.from_pretrained(

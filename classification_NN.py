@@ -17,22 +17,20 @@ class classification_NN(nn.Module):
         self.dropout = nn.Dropout(dropout_prob)
         
         output_dim = 2 # 0 for unmatch; 1 for match
-        #self.layer_channels = list(range(inputs_dimension,output_dim,-1*int((inputs_dimension-output_dim)/(1+num_hidden_lyr))))
-        self.layer_channels = [inputs_dimension] * (1+num_hidden_lyr)
-        self.layer_channels += [output_dim]
+        #layer_channels = list(range(inputs_dimension,output_dim,-1*int((inputs_dimension-output_dim)/(1+num_hidden_lyr))))
+        layer_channels = [inputs_dimension] * (1+num_hidden_lyr)
+        self.layers = nn.ModuleList(list(
+            map(self.weight_init, [nn.Linear(layer_channels[i], layer_channels[i + 1])
+                                    for i in range(num_hidden_lyr)])))
         
         self.activation = nn.ReLU()
         
-        final_layer = nn.Linear(self.layer_channels[-2], self.layer_channels[-1])
-        self.weight_init(final_layer)
-                
-        self.layers = nn.ModuleList(list(
-            map(self.weight_init, [nn.Linear(self.layer_channels[i], self.layer_channels[i + 1])
-                                    for i in range(len(self.layer_channels) - 2)])))
-        self.layers.append(final_layer)
+        self.layer_out =  nn.Linear(layer_channels[-1], output_dim)
+        self.weight_init(self.layer_out)
+        
         self.bn = bn
         if self.bn:
-            self.bn = nn.ModuleList([torch.nn.BatchNorm1d(dim) for dim in self.layer_channels[1:-1]])
+            self.bn = nn.ModuleList([torch.nn.BatchNorm1d(dim) for dim in layer_channels[1:]])
         
     def weight_init(self, m):
         torch.nn.init.xavier_uniform_(m.weight, gain=nn.init.calculate_gain("linear"))
@@ -44,16 +42,13 @@ class classification_NN(nn.Module):
         :return: tuple containing output of MLP,
                 and list of inputs and outputs at every layer
         """
-        layer_inputs = [data]
+        output = data
         for i, layer in enumerate(self.layers):
-            input = layer_inputs[-1]
-            if layer == self.layers[-1]:
-                layer_inputs.append(layer(input))
-            else:
-                if self.bn:
-                    output = self.activation(self.bn[i](layer(input)))
-                else:
-                    output = self.activation(layer(input))
-                layer_inputs.append(self.dropout(output))
-
-        return layer_inputs[-1]
+            output = self.activation(self.bn[i](layer(output)))
+        return torch.softmax(self.layer_out(self.dropout(output)), dim =1)
+    
+    
+    def binary_acc(predicted_logic, labels):
+        predicted_label = torch.sigmoid(predicted_logic)
+        
+        return (predicted_label == labels).sum().float() / len(labels)

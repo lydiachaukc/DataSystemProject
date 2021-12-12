@@ -72,7 +72,7 @@ if __name__=="__main__":
     preprocessed_data = Load_and_preprocess(
         config,
         lm,
-        number_feature_columns = number_feature_columns,
+        number_feature_columns = [],
         data_was_preprocessed = hp.data_was_preprocessed,
         store_preprocessed_data = hp.save_preprocessed_data)
     
@@ -97,7 +97,7 @@ if __name__=="__main__":
             batch_size = hp.batch_size,
             lm = lm,
             learning_rate = hp.lr,
-            num_hidden_lyr = 2)
+            num_hidden_lyr = 1)
     
     
     '''
