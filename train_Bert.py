@@ -5,8 +5,6 @@ Created on Sun Nov 14 18:58:56 2021
 @author: lydia
 """
 import torch
-import time
-import datetime
 import pandas as pd
 
 from transformers import AdamW, get_linear_schedule_with_warmup, BertConfig
@@ -14,7 +12,7 @@ from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 from transformers import BertForSequenceClassification
 from tensorboardX import SummaryWriter
 
-from utils import format_time, setup_cuda, add_record
+from utils import setup_cuda, add_record
 
 
 def train_valid_test_BertMatcher(trainset,
@@ -61,25 +59,17 @@ def train_valid_test_BertMatcher(trainset,
     Training model
     '''
     bert_model.train()
-    
-    total_t0 = time.time()
-    
-    
+        
     for epoch in range(epochs):
         print("")
         print('======== Epoch {:} / {:} ========'.format(epoch + 1, epochs))
         print('Training...')
-        
-        epoch_t0 = time.time()
-        
+                
         total_train_loss = 0
         num_of_train_match = 0
         num_of_valid_match = 0
         for step, batch in enumerate(train_dataloader):
-            if step % 100 == 0 and not step == 0:
-                elapsed = str(datetime.timedelta(seconds=int(round((time.time() - epoch_t0)))))
-                print('  Batch {:>5,}  of  {:>5,}.    Elapsed: {:}.'.format(step, len(train_dataloader), elapsed))
-    
+  
             b_input_ids = batch[0].to(device)
             b_input_mask = batch[1].to(device) 
             b_labels = batch[2].to(device)
@@ -107,18 +97,21 @@ def train_valid_test_BertMatcher(trainset,
             
             # recording loss result
             loss_per_sample = loss.item()/ batch_size
+            
             accuracy = calculate_accuracy(b_labels, result['logits']).item()
             num_of_train_match += accuracy * batch_size
             print("training step:", step, " loss:", loss_per_sample, "accuracy:", accuracy)
         
         # recording loss result
         number_of_sample = (len(train_dataloader) * batch_size)
-        avg_train_loss = total_train_loss / number_of_sample
-        print("  Average training loss: {0:.2f}".format(avg_train_loss))
-        print("  Average training accuracy: {0:.2f}".format(num_of_train_match / number_of_sample))
-        summary_writer.add_scalar("total training ", scalar_value = avg_train_loss , global_step = epoch)
-        output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average training", data_name)
+        avg_train_accuracy = num_of_train_match / number_of_sample
+        print("  Average training accuracy: {0:.2f}".format(avg_train_accuracy))
+        output = add_record(output, today_date, "numbert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
         
+        # avg_train_loss = total_train_loss / number_of_sample
+        # print("  Average training loss: {0:.2f}".format(avg_train_loss))
+        #summary_writer.add_scalar("total training ", scalar_value = avg_train_loss , global_step = epoch)
+        #output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average training", data_name)
         
         '''
         Validating model
@@ -148,25 +141,28 @@ def train_valid_test_BertMatcher(trainset,
             loss_per_sample = result['loss'].item() / batch_size
             
             accuracy = calculate_accuracy(b_labels, result['logits']).item()
-            num_of_train_match += accuracy * batch_size
+            num_of_valid_match += accuracy * batch_size
             
-            print("testing step:", step, " loss:", loss_per_sample, "accuracy:", accuracy)
+            print("validating step:", step, " loss:", loss_per_sample, "accuracy:", accuracy)
             
         # recording loss result
         number_of_sample = (len(valid_dataloader) * batch_size)
-        avg_valid_loss = total_valid_loss / number_of_sample
-        print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
-        print("  Average valid accuracy: {0:.2f}".format(num_of_valid_match / number_of_sample))
-        summary_writer.add_scalar("total_validating", scalar_value = avg_valid_loss , global_step = epoch)
-        output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average validating", data_name)
+        avg_train_accuracy = num_of_valid_match / number_of_sample
+        print("  Average valid accuracy: {0:.2f}".format(avg_train_accuracy))
+        output = add_record(output, today_date, "bert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
+
+        # avg_valid_loss = total_valid_loss / number_of_sample
+        # print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
+        # summary_writer.add_scalar("total_validating", scalar_value = avg_valid_loss , global_step = epoch)
+        # output = add_record(output, today_date, "bert", 0, 0, avg_valid_loss, "average validating", data_name)
         
     '''
     Testing model
     '''
     bert_model.eval()
     
-    total_valid_loss = 0
-    
+    total_test_loss = 0
+    num_of_test_match = 0    
     for step, batch in enumerate(test_dataloader):
         
         b_input_ids = batch[0].to(device)
@@ -182,18 +178,23 @@ def train_valid_test_BertMatcher(trainset,
                 token_type_ids  = b_input_segment
                 )
 
-        total_valid_loss += result['loss'].item()
+        total_test_loss += result['loss'].item()
         accuracy = calculate_accuracy(batch[2], result['logits'].items)
+        num_of_test_match += accuracy * batch_size
         
         # recording loss result
-        loss_per_sample = result['loss'].item() / batch_size
-        print("validation step:", step, " loss:", loss_per_sample, "accuracy:", accuracy)
+        print("validation step:", step, " loss:", result['loss'].item() / batch_size, "accuracy:", accuracy)
         
     # recording loss result
-    avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
-    print("  Average test loss: {0:.2f}".format(avg_valid_loss))
-    summary_writer.add_scalar("total_testing", scalar_value = avg_valid_loss , global_step = epoch)
-    output = add_record(output, today_date, "bert", 0, 0, avg_train_loss, "average testing", data_name)
+    number_of_sample = (len(test_dataloader) * batch_size)
+    avg_test_accuracy = num_of_test_match / number_of_sample
+    print("  Average test accuracy: {0:.2f}".format(avg_test_accuracy))
+    output = add_record(output, today_date, "bert", 0, 0, avg_test_accuracy, "avg testing accuracy", data_name)
+
+    # avg_test_loss = total_test_loss / number_of_sample
+    # print("  Average test loss: {0:.2f}".format(avg_test_loss))
+    # summary_writer.add_scalar("total_testing", scalar_value = avg_test_loss , global_step = epoch)
+    # output = add_record(output, today_date, "bert", 0, 0, avg_test_loss, "average testing", data_name)
     
     output.to_csv(output_directory + "/result.csv", index=False)
     summary_writer.close()
