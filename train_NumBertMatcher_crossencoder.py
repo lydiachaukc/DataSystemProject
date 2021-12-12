@@ -101,13 +101,13 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
             # recording loss result
             loss_per_sample = loss.item() / batch_size
             num_of_train_match += result["accuracy"].item() *  batch_size
-            print("training step:", step, " loss:", loss_per_sample, "accuracy: ", result["accuracy"].item())
+            #print("training step:", step, " loss:", loss_per_sample, "accuracy: ", result["accuracy"].item())
             
             
         # recording loss result
         number_of_sample = (len(train_dataloader) * batch_size)
-        avg_train_accuracy = num_of_train_match / number_of_sample
-        print("  Average training accuracy: {0:.2f}".format(avg_train_accuracy))
+        avg_train_accuracy = num_of_train_match.float() / number_of_sample
+        print("  Average training accuracy: {0:.5f}".format(avg_train_accuracy))
         output = add_record(output, today_date, "numbert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
 
         # avg_train_loss = total_train_loss / number_of_sample        
@@ -145,13 +145,13 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
             # recording loss result
             loss_per_sample = result['loss'].item() / batch_size
             num_of_valid_match += result["accuracy"].item() *  batch_size
-            print("validation step:", step, " loss:", loss_per_sample, "accuracy: ", result["accuracy"].item())
+            #print("validation step:", step, " loss:", loss_per_sample, "accuracy: ", result["accuracy"].item())
         
         
         # recording loss result
         number_of_sample = (len(valid_dataloader) * batch_size)
-        avg_valid_accuracy = num_of_valid_match / number_of_sample
-        print("  Average valid accuracy: {0:.2f}".format(avg_valid_accuracy))
+        avg_valid_accuracy = num_of_valid_match.float() / number_of_sample
+        print("  Average valid accuracy: {0:.5f}".format(avg_valid_accuracy))
         output = add_record(output, today_date, "numbert", 0, 0, avg_valid_accuracy, "avg valid accuracy", data_name)
         
         # avg_valid_loss = total_valid_loss / number_of_sample
@@ -191,8 +191,8 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
 
     # recording loss result
     number_of_sample = (len(test_dataloader) * batch_size)
-    avg_test_accuracy = num_of_test_match / number_of_sample
-    print("  Average test accuracy: {0:.2f}".format(avg_test_accuracy))
+    avg_test_accuracy = num_of_test_match.float() / number_of_sample
+    print("  Average test accuracy: {0:.5f}".format(avg_test_accuracy))
     output = add_record(output, today_date, "numbert", 0, 0, avg_test_accuracy, "avg test accuracy", data_name)
 
     # avg_test_loss = total_test_loss / number_of_sample
