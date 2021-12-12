@@ -21,7 +21,7 @@ if __name__=="__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--task", type=str, default="amazon_google")
     parser.add_argument("--run_id", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=8)
+    parser.add_argument("--batch_size", type=int, default=12)
     parser.add_argument("--max_len", type=int, default=256)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--n_epochs", type=int, default=1)
@@ -72,7 +72,7 @@ if __name__=="__main__":
     preprocessed_data = Load_and_preprocess(
         config,
         lm,
-        number_feature_columns = [],
+        number_feature_columns = number_feature_columns,
         data_was_preprocessed = hp.data_was_preprocessed,
         store_preprocessed_data = hp.save_preprocessed_data)
     
