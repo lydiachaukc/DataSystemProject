@@ -77,11 +77,10 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
         else:
             loss=None
                 
-        return {
-            'loss': loss,
-            'logits': logits,
-            'accuracy': self.calculate_accuracy(labels, logits)
-            }
+        return {'loss': loss,
+                'logits': logits,
+                'accuracy': self.calculate_accuracy(labels, logits)
+                }
     
     def calculate_difference(self, tensorA, tensorB):
         return tensorA - tensorB
