@@ -7,7 +7,7 @@ Created on Sun Nov 14 18:58:56 2021
 import pandas as pd
 import torch
 from transformers import AdamW, get_linear_schedule_with_warmup, BertConfig
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
+from torch.utils.data import DataLoader, WeightedRandomSampler, SequentialSampler, TensorDataset
 from tensorboardX import SummaryWriter
 from sklearn.metrics import f1_score
 
@@ -59,7 +59,6 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
     Training model
     '''
     model.train()
-
     for epoch in range(epochs):
         print("")
         print('======== Epoch {:} / {:} ========'.format(epoch + 1, epochs))
@@ -110,7 +109,6 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
             training_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
             training_labels += b_labels.tolist()
             print("training step:", step, "f1 score", f1_score(training_labels, training_prediction, zero_division=1, average="micro"))
-            
             
         # recording result
         f1score = f1_score(training_labels, training_prediction, zero_division=1, average="micro")
@@ -213,6 +211,7 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
     f1score = f1_score(testing_labels, testing_prediction, zero_division=1, average="micro")
     print("average testing f1 score:", f1score)
     output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg testing f1", data_name)
+    pd.DataFrame(testing_prediction).to_csv("numbert_test_output_" & data_name & ".csv")
     # number_of_sample = (len(test_dataloader) * batch_size)
     # avg_test_accuracy = num_of_test_match / number_of_sample
     # print("  Average test accuracy: {0:.5f}".format(avg_test_accuracy))
@@ -224,7 +223,7 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
     # output = add_record(output, today_date, "numbert", 0, 0, avg_test_loss, "avg test loss", data_name)
 
     # summary_writer.close()
-    output.to_csv(output_directory + "/result.csv" , index=False)
+    output.to_csv(output_directory + "/result.csv" , index = False)
 
 
 def prepare_data_loader(dataset, batch_size, random_sampler = False):
@@ -237,17 +236,25 @@ def prepare_data_loader(dataset, batch_size, random_sampler = False):
             dataset.text_segment_ids
             )
     
-    if random_sampler:
-        sampler = RandomSampler(tensor_dataset)
-    else:
-        sampler = SequentialSampler(tensor_dataset)
+    if not random_sampler:
+        return DataLoader(tensor_dataset,
+                        sampler = SequentialSampler(tensor_dataset),
+                        batch_size = batch_size,
+                        drop_last = True)
+     
+    # handle unbalanced data
+    positive = dataset.labels.sum()
+    counts = len(dataset.labels)
+    negative = counts - positive
+    weights = dataset.labels / positive + (1-dataset.labels) / negative
     
-    return DataLoader(
-        tensor_dataset,
-        sampler = sampler,
-        batch_size = batch_size,
-        drop_last = True
-    )
+    sampler = WeightedRandomSampler(weights.tolist(), counts)
+    
+    return DataLoader(tensor_dataset,
+                    sampler = sampler,
+                    batch_size = batch_size,
+                    drop_last = True
+                )
 
     
 def build_bert_config(num_input_dimension, lm, num_hidden_lyr):

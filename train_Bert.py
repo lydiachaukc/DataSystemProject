@@ -116,12 +116,12 @@ def train_valid_test_BertMatcher(trainset,
         # recording result
         f1score = f1_score(training_labels, training_prediction, zero_division=1, average="micro")
         print("average training f1 score:", f1score)
-        output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg training f1", data_name)
+        output = add_record(output, today_date, "bert", (epoch+1), 0, f1score, "avg training f1", data_name)
         
         # number_of_sample = (len(train_dataloader) * batch_size)
         # avg_train_accuracy = num_of_train_match / number_of_sample
         # print("  Average training accuracy: {0:.5f}".format(avg_train_accuracy))
-        # output = add_record(output, today_date, "numbert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
+        # output = add_record(output, today_date, "bert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
         
         # avg_train_loss = total_train_loss / number_of_sample
         # print("  Average training loss: {0:.2f}".format(avg_train_loss))
@@ -164,7 +164,7 @@ def train_valid_test_BertMatcher(trainset,
         # recording result
         f1score = f1_score(validating_labels, validating_prediction, zero_division=1, average="micro")
         print("average validating f1 score:", f1score)
-        output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg validating f1", data_name)
+        output = add_record(output, today_date, "bert", (epoch+1), 0, f1score, "avg validating f1", data_name)
         
         # number_of_sample = (len(valid_dataloader) * batch_size)
         # avg_train_accuracy = num_of_valid_match / number_of_sample
@@ -212,7 +212,8 @@ def train_valid_test_BertMatcher(trainset,
     # recording loss result    
     f1score = f1_score(testing_labels, testing_prediction, zero_division=1, average="micro")
     print("average testing f1 score:", f1score)
-    output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg testing f1", data_name)
+    output = add_record(output, today_date, "bert", 0, 0, f1score, "avg testing f1", data_name)
+    pd.DataFrame(testing_prediction).to_csv("bert_test_output_" & data_name & ".csv")
     # number_of_sample = (len(test_dataloader) * batch_size)
     # avg_test_accuracy = num_of_test_match / number_of_sample
     # print("  Average test accuracy: {0:.5f}".format(avg_test_accuracy))
