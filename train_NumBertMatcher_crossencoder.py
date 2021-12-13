@@ -7,7 +7,7 @@ Created on Sun Nov 14 18:58:56 2021
 import pandas as pd
 import torch
 from transformers import AdamW, get_linear_schedule_with_warmup, BertConfig
-from torch.utils.data import DataLoader, WeightedRandomSampler, SequentialSampler, TensorDataset
+from torch.utils.data import DataLoader, WeightedRandomSampler, SequentialSampler, TensorDataset, RandomSampler
 from tensorboardX import SummaryWriter
 from sklearn.metrics import f1_score
 
@@ -248,7 +248,8 @@ def prepare_data_loader(dataset, batch_size, random_sampler = False):
     negative = counts - positive
     weights = dataset.labels / positive + (1-dataset.labels) / negative
     
-    sampler = WeightedRandomSampler(weights.tolist(), counts)
+    #sampler = WeightedRandomSampler(weights.tolist(), counts)
+    sampler = RandomSampler(tensor_dataset)
     
     return DataLoader(tensor_dataset,
                     sampler = sampler,
@@ -266,13 +267,13 @@ def build_bert_config(num_input_dimension, lm, num_hidden_lyr):
     config.lm = lm
     return config
 
-def calculate_f1_score(labels, prediction):
-    true_positive = (labels * prediction).sum()
-    false_positive = ((1-labels) * prediction).sum()
-    true_negative = ((1-labels)*(1-prediction)).sum()
-    false_negative = (labels*(1-prediction)).sum()
+# def calculate_f1_score(labels, prediction):
+#     true_positive = (labels * prediction).sum()
+#     false_positive = ((1-labels) * prediction).sum()
+#     true_negative = ((1-labels)*(1-prediction)).sum()
+#     false_negative = (labels*(1-prediction)).sum()
     
-    assert abs(true_positive + false_positive + true_negative + false_negative-1)<1e-8
-    #presicion = 
-    return 0
+#     assert abs(true_positive + false_positive + true_negative + false_negative-1)<1e-8
+#     #presicion = 
+#     return 0
     
