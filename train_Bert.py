@@ -11,6 +11,7 @@ from transformers import AdamW, get_linear_schedule_with_warmup, BertConfig
 from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 from transformers import BertForSequenceClassification
 from tensorboardX import SummaryWriter
+from sklearn.metrics import f1_score
 
 from utils import setup_cuda, add_record
 
@@ -66,8 +67,13 @@ def train_valid_test_BertMatcher(trainset,
         print('Training...')
                 
         total_train_loss = 0
-        num_of_train_match = 0
-        num_of_valid_match = 0
+        #num_of_train_match = 0
+        #num_of_valid_match = 0
+        
+        training_prediction = []
+        training_labels = []
+        validating_prediction = []
+        validating_labels = []
         for step, batch in enumerate(train_dataloader):
   
             b_input_ids = batch[0].to(device)
@@ -95,18 +101,27 @@ def train_valid_test_BertMatcher(trainset,
             optimizer.step()
             scheduler.step()
             
-            # recording loss result
-            #loss_per_sample = loss.item()/ batch_size
+            # recording result
+            training_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
+            training_labels += b_labels.tolist()
+            print("training step:",
+                  step, "f1 score", 
+                  f1_score(training_labels, training_prediction, zero_division=1, average="micro"))
             
-            accuracy = calculate_accuracy(b_labels, result['logits']).item()
-            num_of_train_match += accuracy * batch_size
+            #loss_per_sample = loss.item()/ batch_size
+            #accuracy = calculate_accuracy(b_labels, result['logits']).item()
+            #num_of_train_match += accuracy * batch_size
             #print("training step:", step, " loss:", loss_per_sample, "accuracy:", accuracy)
         
-        # recording loss result
-        number_of_sample = (len(train_dataloader) * batch_size)
-        avg_train_accuracy = num_of_train_match / number_of_sample
-        print("  Average training accuracy: {0:.5f}".format(avg_train_accuracy))
-        output = add_record(output, today_date, "numbert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
+        # recording result
+        f1score = f1_score(training_labels, training_prediction, zero_division=1, average="micro")
+        print("average training f1 score:", f1score)
+        output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg training f1", data_name)
+        
+        # number_of_sample = (len(train_dataloader) * batch_size)
+        # avg_train_accuracy = num_of_train_match / number_of_sample
+        # print("  Average training accuracy: {0:.5f}".format(avg_train_accuracy))
+        # output = add_record(output, today_date, "numbert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
         
         # avg_train_loss = total_train_loss / number_of_sample
         # print("  Average training loss: {0:.2f}".format(avg_train_loss))
@@ -137,19 +152,24 @@ def train_valid_test_BertMatcher(trainset,
     
             total_valid_loss += result['loss'].item()
             
-            # recording loss result
+            # recording result
+            validating_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
+            validating_labels += b_labels.tolist()
             #loss_per_sample = result['loss'].item() / batch_size
-            
-            accuracy = calculate_accuracy(b_labels, result['logits']).item()
-            num_of_valid_match += accuracy * batch_size
+            # accuracy = calculate_accuracy(b_labels, result['logits']).item()
+            # num_of_valid_match += accuracy * batch_size
             
             #print("validating step:", step, " loss:", loss_per_sample, "accuracy:", accuracy)
             
-        # recording loss result
-        number_of_sample = (len(valid_dataloader) * batch_size)
-        avg_train_accuracy = num_of_valid_match / number_of_sample
-        print("  Average valid accuracy: {0:.5f}".format(avg_train_accuracy))
-        output = add_record(output, today_date, "bert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
+        # recording result
+        f1score = f1_score(validating_labels, validating_prediction, zero_division=1, average="micro")
+        print("average validating f1 score:", f1score)
+        output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg validating f1", data_name)
+        
+        # number_of_sample = (len(valid_dataloader) * batch_size)
+        # avg_train_accuracy = num_of_valid_match / number_of_sample
+        # print("  Average valid accuracy: {0:.5f}".format(avg_train_accuracy))
+        # output = add_record(output, today_date, "bert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
 
         # avg_valid_loss = total_valid_loss / number_of_sample
         # print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
@@ -162,7 +182,9 @@ def train_valid_test_BertMatcher(trainset,
     bert_model.eval()
     
     total_test_loss = 0
-    num_of_test_match = 0    
+    num_of_test_match = 0   
+    testing_prediction = []
+    testing_labels = [] 
     for step, batch in enumerate(test_dataloader):
         
         b_input_ids = batch[0].to(device)
@@ -178,18 +200,23 @@ def train_valid_test_BertMatcher(trainset,
                 token_type_ids  = b_input_segment
                 )
 
-        total_test_loss += result['loss'].item()
-        accuracy = calculate_accuracy(b_labels, result['logits']).item()
-        num_of_test_match += accuracy * batch_size
+        # total_test_loss += result['loss'].item()
+        # accuracy = calculate_accuracy(b_labels, result['logits']).item()
+        # num_of_test_match += accuracy * batch_size
         
         # recording loss result
+        testing_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
+        testing_labels += b_labels.tolist()        
         #print("validation step:", step, " loss:", result['loss'].item() / batch_size, "accuracy:", accuracy)
         
-    # recording loss result
-    number_of_sample = (len(test_dataloader) * batch_size)
-    avg_test_accuracy = num_of_test_match / number_of_sample
-    print("  Average test accuracy: {0:.5f}".format(avg_test_accuracy))
-    output = add_record(output, today_date, "bert", 0, 0, avg_test_accuracy, "avg testing accuracy", data_name)
+    # recording loss result    
+    f1score = f1_score(testing_labels, testing_prediction, zero_division=1, average="micro")
+    print("average testing f1 score:", f1score)
+    output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg testing f1", data_name)
+    # number_of_sample = (len(test_dataloader) * batch_size)
+    # avg_test_accuracy = num_of_test_match / number_of_sample
+    # print("  Average test accuracy: {0:.5f}".format(avg_test_accuracy))
+    # output = add_record(output, today_date, "bert", 0, 0, avg_test_accuracy, "avg testing accuracy", data_name)
 
     # avg_test_loss = total_test_loss / number_of_sample
     # print("  Average test loss: {0:.2f}".format(avg_test_loss))

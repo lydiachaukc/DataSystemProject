@@ -8,7 +8,6 @@ import torch
 import torch.nn as nn
 from torch.nn import CrossEntropyLoss
 
-#from transformers import AutoModel
 from transformers import BertForSequenceClassification
 from classification_NN import classification_NN
 from transformers.modeling_outputs import SequenceClassifierOutput
@@ -23,7 +22,7 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
         super().__init__(config)
         self.num_labels = config.num_labels
         
-        if (similarity_method == "cos"):
+        if (config.num_input_dimension != 1):
             cos = CosineSimilarity()
             self.calculate_similiarity = lambda a, b: cos(a,b).view(-1,1)
             config.num_input_dimension = 1
@@ -79,13 +78,13 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
                 
         return {'loss': loss,
                 'logits': logits,
-                'accuracy': self.calculate_accuracy(labels, logits)
+#                'accuracy': self.calculate_accuracy(labels, logits)
                 }
     
     def calculate_difference(self, tensorA, tensorB):
-        return tensorA - tensorB
+        return torch.abs(tensorA - tensorB)
     
-    def calculate_accuracy(self, actual_labels, logits):
-        _, predicted_labels = torch.max(logits, dim = 1)
+    # def calculate_accuracy(self, actual_labels, logits):
+    #     _, predicted_labels = torch.max(logits, dim = 1)
         
-        return (actual_labels == predicted_labels).sum().float() / len(actual_labels)
+    #     return (actual_labels == predicted_labels).sum().float() / len(actual_labels)
