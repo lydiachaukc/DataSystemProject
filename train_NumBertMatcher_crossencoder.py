@@ -9,6 +9,7 @@ import torch
 from transformers import AdamW, get_linear_schedule_with_warmup, BertConfig
 from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 from tensorboardX import SummaryWriter
+from sklearn.metrics import f1_score
 
 from utils import setup_cuda, add_record
 from numBertMatcher import NumBertMatcher_crossencoder
@@ -25,8 +26,8 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
                                    data_name = ""):
     # Set output format
     today_date = str(pd.Timestamp.today().date())
-    summary_writer = SummaryWriter(output_directory + "/" + today_date)
-    summary_writer.add_text('NumBerMatcher', 'Recording loss data for NumBerMatcher', 0)
+    # summary_writer = SummaryWriter(output_directory + "/" + today_date)
+    # summary_writer.add_text('NumBerMatcher', 'Recording loss data for NumBerMatcher', 0)
     output = pd.read_csv(output_directory + "/result.csv")
     
     device = setup_cuda()
@@ -65,8 +66,12 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
         print('Training crossencoder...')
         
         total_train_loss = 0
-        num_of_train_match = 0
-        num_of_valid_match = 0
+        # num_of_train_match = 0
+        # num_of_valid_match = 0
+        training_prediction = []
+        training_labels = []
+        validating_prediction = []
+        validating_labels = []
         for step, batch in enumerate(train_dataloader):
     
             b_input_ids = batch[0].to(device)
@@ -99,16 +104,22 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
             scheduler.step()
             
             # recording loss result
-            #loss_per_sample = loss.item() / batch_size
-            num_of_train_match += result["accuracy"].item() *  batch_size
-            #print("training step:", step, " loss:", loss_per_sample, "accuracy: ", result["accuracy"].item())
+            # loss_per_sample = loss.item() / batch_size
+            # num_of_train_match += result["accuracy"].item() *  batch_size
+            # print("training step:", step, " loss:", loss_per_sample, "accuracy: ", result["accuracy"].item())
+            training_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
+            training_labels += b_labels.tolist()
+            print("training step:", step, "f1 score", f1_score(training_labels, training_prediction, zero_division=1, average="micro"))
             
             
-        # recording loss result
-        number_of_sample = (len(train_dataloader) * batch_size)
-        avg_train_accuracy = num_of_train_match / number_of_sample
-        print("  Average training accuracy: {0:.5f}".format(avg_train_accuracy))
-        output = add_record(output, today_date, "numbert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
+        # recording result
+        f1score = f1_score(training_labels, training_prediction, zero_division=1, average="micro")
+        print("average training f1 score:", f1score)
+        output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg training f1", data_name)
+        #number_of_sample = (len(train_dataloader) * batch_size)
+        #avg_train_accuracy = num_of_train_match / number_of_sample
+        #print("  Average training accuracy: {0:.5f}".format(avg_train_accuracy))
+        #output = add_record(output, today_date, "numbert", 0, 0, avg_train_accuracy, "avg training accuracy", data_name)
 
         # avg_train_loss = total_train_loss / number_of_sample        
         # print("  Average training loss: {0:.2f}".format(avg_train_loss))
@@ -121,7 +132,7 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
         model.eval()
         
         total_valid_loss = 0
-        for step, batch in enumerate(test_dataloader):
+        for step, batch in enumerate(valid_dataloader):
             
             b_input_ids = batch[0].to(device)
             b_input_mask = batch[1].to(device) 
@@ -142,17 +153,22 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
     
             total_valid_loss += result['loss'].item()
             
+            validating_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
+            validating_labels += b_labels.tolist()
             # recording loss result
             #loss_per_sample = result['loss'].item() / batch_size
-            num_of_valid_match += result["accuracy"].item() *  batch_size
+            #num_of_valid_match += result["accuracy"].item() *  batch_size
             #print("validation step:", step, " loss:", loss_per_sample, "accuracy: ", result["accuracy"].item())
         
         
-        # recording loss result
-        number_of_sample = (len(valid_dataloader) * batch_size)
-        avg_valid_accuracy = num_of_valid_match / number_of_sample
-        print("  Average valid accuracy: {0:.5f}".format(avg_valid_accuracy))
-        output = add_record(output, today_date, "numbert", 0, 0, avg_valid_accuracy, "avg valid accuracy", data_name)
+        # recording result
+        f1score = f1_score(validating_labels, validating_prediction, zero_division=1, average="micro")
+        print("average validating f1 score:", f1score)
+        output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg validating f1", data_name)
+        # number_of_sample = (len(valid_dataloader) * batch_size)
+        # avg_valid_accuracy = num_of_valid_match / number_of_sample
+        # print("  Average valid accuracy: {0:.5f}".format(avg_valid_accuracy))
+        # output = add_record(output, today_date, "numbert", 0, 0, avg_valid_accuracy, "avg valid accuracy", data_name)
         
         # avg_valid_loss = total_valid_loss / number_of_sample
         # print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
@@ -165,8 +181,10 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
     '''
     model.eval()
     
-    total_test_loss = 0
-    num_of_test_match = 0
+    #total_test_loss = 0
+    #num_of_test_match = 0
+    testing_prediction = []
+    testing_labels = []
     for step, batch in enumerate(test_dataloader):
         
         b_input_ids = batch[0].to(device)
@@ -185,22 +203,27 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
                 labels = b_labels,
                 token_type_ids  = b_input_segment
                 )
+        
+        testing_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
+        testing_labels += b_labels.tolist()        
+        # total_test_loss += result['loss'].item()
+        # num_of_test_match += result["accuracy"].item() *  batch_size
 
-        total_test_loss += result['loss'].item()
-        num_of_test_match += result["accuracy"].item() *  batch_size
-
-    # recording loss result
-    number_of_sample = (len(test_dataloader) * batch_size)
-    avg_test_accuracy = num_of_test_match / number_of_sample
-    print("  Average test accuracy: {0:.5f}".format(avg_test_accuracy))
-    output = add_record(output, today_date, "numbert", 0, 0, avg_test_accuracy, "avg test accuracy", data_name)
+    # recording result
+    f1score = f1_score(testing_labels, testing_prediction, zero_division=1, average="micro")
+    print("average testing f1 score:", f1score)
+    output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg testing f1", data_name)
+    # number_of_sample = (len(test_dataloader) * batch_size)
+    # avg_test_accuracy = num_of_test_match / number_of_sample
+    # print("  Average test accuracy: {0:.5f}".format(avg_test_accuracy))
+    # output = add_record(output, today_date, "numbert", 0, 0, avg_test_accuracy, "avg test accuracy", data_name)
 
     # avg_test_loss = total_test_loss / number_of_sample
     # print("  Average test loss: {0:.2f}".format(avg_test_loss))
     # summary_writer.add_scalar("total training ", scalar_value = avg_test_loss , global_step = epoch)
     # output = add_record(output, today_date, "numbert", 0, 0, avg_test_loss, "avg test loss", data_name)
 
-    summary_writer.close()
+    # summary_writer.close()
     output.to_csv(output_directory + "/result.csv" , index=False)
 
 
@@ -230,3 +253,14 @@ def build_bert_config(num_input_dimension, lm, num_hidden_lyr):
     config.num_hidden_lyr = num_hidden_lyr
     config.lm = lm
     return config
+
+def calculate_f1_score(labels, prediction):
+    true_positive = (labels * prediction).sum()
+    false_positive = ((1-labels) * prediction).sum()
+    true_negative = ((1-labels)*(1-prediction)).sum()
+    false_negative = (labels*(1-prediction)).sum()
+    
+    assert abs(true_positive + false_positive + true_negative + false_negative-1)<1e-8
+    #presicion = 
+    return 0
+    
