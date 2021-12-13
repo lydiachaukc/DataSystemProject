@@ -7,7 +7,7 @@ Created on Sun Nov 14 18:58:56 2021
 import pandas as pd
 import torch
 from transformers import AdamW, get_linear_schedule_with_warmup, BertConfig
-from torch.utils.data import DataLoader, RandomSampler, TensorDataset
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from tensorboardX import SummaryWriter
 from sklearn.metrics import f1_score
 
@@ -33,7 +33,7 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
     device = setup_cuda()
        
     # Creating Dataloader
-    train_dataloader = prepare_data_loader(trainset, batch_size)
+    train_dataloader = prepare_data_loader(trainset, batch_size, random_sampler=True)
     valid_dataloader = prepare_data_loader(validset, batch_size)
     test_dataloader = prepare_data_loader(testset, batch_size)
     
@@ -227,7 +227,7 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
     output.to_csv(output_directory + "/result.csv" , index=False)
 
 
-def prepare_data_loader(dataset, batch_size, random_sampler = True):
+def prepare_data_loader(dataset, batch_size, random_sampler = False):
     tensor_dataset = TensorDataset(
             dataset.combined_text_data,
             dataset.text_attention_mask, 
@@ -237,9 +237,14 @@ def prepare_data_loader(dataset, batch_size, random_sampler = True):
             dataset.text_segment_ids
             )
     
+    if random_sampler:
+        sampler = RandomSampler(tensor_dataset)
+    else:
+        sampler = SequentialSampler(tensor_dataset)
+    
     return DataLoader(
         tensor_dataset,
-        sampler = RandomSampler(tensor_dataset),
+        sampler = sampler,
         batch_size = batch_size,
         drop_last = True
     )
