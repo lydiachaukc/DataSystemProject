@@ -19,14 +19,14 @@ from build_dataset import build_tensor_dataset
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", type=str, default="amazon_google")
+    parser.add_argument("--task", type=str, default="abt_buy")
     parser.add_argument("--run_id", type=int, default=0)
-    parser.add_argument("--batch_size", type=int, default=12)
+    parser.add_argument("--batch_size", type=int, default=16)
     parser.add_argument("--max_len", type=int, default=256)
     parser.add_argument("--lr", type=float, default=3e-5)
     parser.add_argument("--n_epochs", type=int, default=7)
-    parser.add_argument("--save_preprocessed_data", type=bool, default=False)
-    parser.add_argument("--data_was_preprocessed", type=bool, default=True)
+    parser.add_argument("--save_preprocessed_data", type=bool, default=True)
+    parser.add_argument("--data_was_preprocessed", type=bool, default=False)
     parser.add_argument("--save_model", dest="save_model", action="store_true")
     parser.add_argument("--lm", type=str, default='bert')
     parser.add_argument("--fp16", dest="fp16", action="store_true")

@@ -53,5 +53,16 @@
     "validset": "data/dirty_walmart_amazon/valid.csv",
     "testset": "data/dirty_walmart_amazon/test.csv",
     "number_feature_columns": ["price"]
+  },
+  {
+    "name": "abt_buy",
+    "task_type": "classification",
+    "vocab": ["0", "1"],
+    "tableA": "data/abt_buy/tableA.csv",
+    "tableB": "data/abt_buy/tableB.csv",
+    "trainset": "data/abt_buy/train.csv",
+    "validset": "data/abt_buy/valid.csv",
+    "testset": "data/abt_buy/test.csv",
+    "number_feature_columns": ["price"]
   }
 ]
