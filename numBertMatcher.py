@@ -64,7 +64,7 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
             numerical_featuresA,
             numerical_featuresB)
         
-        numerical_features = self.norm_num_batch(numerical_features)
+        # numerical_features = self.norm_num_batch(numerical_features)
         
         # Combined the text embedding with the similarity factor of numeric features
         all_features = torch.cat((cls_output, numerical_features), dim=1)
@@ -82,7 +82,8 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
                 }
     
     def calculate_difference(self, tensorA, tensorB):
-        return torch.abs(tensorA - tensorB)
+        #return torch.abs(tensorA - tensorB)
+        return (tensorA - tensorB)
     
     # def calculate_accuracy(self, actual_labels, logits):
     #     _, predicted_labels = torch.max(logits, dim = 1)

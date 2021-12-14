@@ -19,7 +19,7 @@ from build_dataset import build_tensor_dataset
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", type=str, default="dirty_walmart_amazon")
+    parser.add_argument("--task", type=str, default="dirty_dblp_scholar")
     parser.add_argument("--run_id", type=int, default=42)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--max_len", type=int, default=512)
