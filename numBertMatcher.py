@@ -6,7 +6,8 @@ Created on Sat Nov 13 14:48:10 2021
 """
 import torch
 import torch.nn as nn
-from torch.nn import CrossEntropyLoss
+#from torch.nn import CrossEntropyLoss
+from torch.nn import BCEWithLogitsLoss
 
 from transformers import BertForSequenceClassification
 from classification_NN import classification_NN
@@ -33,12 +34,13 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
             inputs_dimension = config.num_input_dimension + config.text_input_dimension,
             num_hidden_lyr = config.num_hidden_lyr,
             dropout_prob = 0.2,
-            bn = nn.BatchNorm1d(config.num_input_dimension)
+            bn =True
             )
         
-        self.norm_num_batch = nn.BatchNorm1d(config.num_input_dimension)
+        #self.norm_num_batch = nn.BatchNorm1d(config.num_input_dimension + config.text_input_dimension)
         self.init_weights()
-        self.loss_fct  = CrossEntropyLoss()
+        #self.loss_fct  = CrossEntropyLoss()
+        self.loss_fct  = BCEWithLogitsLoss()
         
         
     
@@ -68,11 +70,11 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
         
         # Combined the text embedding with the similarity factor of numeric features
         all_features = torch.cat((cls_output, numerical_features), dim=1)
-        
+        #all_features = self.norm_num_batch(all_features)
         # Calculate the logits, loss and accuracy
         logits = self.classifier(all_features)
         if labels is not None:
-            loss = self.loss_fct(logits.view(-1, self.num_labels), labels.long().view(-1))
+            loss = self.loss_fct(logits, labels.float().view(-1,1))
         else:
             loss=None
                 

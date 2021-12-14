@@ -10,6 +10,7 @@ from transformers import AdamW, get_linear_schedule_with_warmup, BertConfig
 from torch.utils.data import DataLoader, WeightedRandomSampler, SequentialSampler, TensorDataset, RandomSampler
 from tensorboardX import SummaryWriter
 from sklearn.metrics import f1_score
+from torch.nn import Sigmoid
 
 from utils import setup_cuda, add_record
 from numBertMatcher import NumBertMatcher_crossencoder
@@ -106,7 +107,7 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
             # loss_per_sample = loss.item() / batch_size
             # num_of_train_match += result["accuracy"].item() *  batch_size
             # print("training step:", step, " loss:", loss_per_sample, "accuracy: ", result["accuracy"].item())
-            training_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
+            training_prediction += calculate_prediction(result["logits"]).tolist()
             training_labels += b_labels.tolist()
             print("training step:", step, "f1 score", f1_score(training_labels, training_prediction, zero_division=1, average="micro"))
             
@@ -151,7 +152,8 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
     
             total_valid_loss += result['loss'].item()
             
-            validating_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
+            #validating_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
+            validating_prediction += calculate_prediction(result["logits"]).tolist()
             validating_labels += b_labels.tolist()
             # recording loss result
             #loss_per_sample = result['loss'].item() / batch_size
@@ -202,7 +204,8 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
                 token_type_ids  = b_input_segment
                 )
         
-        testing_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
+        # testing_prediction += torch.max(result["logits"], dim = 1).indices.tolist()
+        testing_prediction += calculate_prediction(result["logits"]).tolist()
         testing_labels += b_labels.tolist()        
         # total_test_loss += result['loss'].item()
         # num_of_test_match += result["accuracy"].item() *  batch_size
@@ -277,3 +280,6 @@ def build_bert_config(num_input_dimension, lm, num_hidden_lyr):
 #     #presicion = 
 #     return 0
     
+def calculate_prediction(logits):
+    sig = Sigmoid()
+    return (sig(logits) >0.5).int()

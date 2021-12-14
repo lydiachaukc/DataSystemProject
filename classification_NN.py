@@ -16,7 +16,7 @@ class classification_NN(nn.Module):
         super().__init__()
         self.dropout = nn.Dropout(dropout_prob)
         
-        output_dim = 2 # 0 for unmatch; 1 for match
+        output_dim = 1 # 0 for unmatch; 1 for match
         #layer_channels = list(range(inputs_dimension,output_dim,-1*int((inputs_dimension-output_dim)/(1+num_hidden_lyr))))
         layer_channels = [inputs_dimension] * (1+num_hidden_lyr)
         self.layers = nn.ModuleList(list(
@@ -28,8 +28,7 @@ class classification_NN(nn.Module):
         self.layer_out =  nn.Linear(layer_channels[-1], output_dim)
         self.weight_init(self.layer_out)
         
-        self.bn = bn
-        if self.bn:
+        if bn:
             self.bn = nn.ModuleList([torch.nn.BatchNorm1d(dim) for dim in layer_channels[1:]])
         
     def weight_init(self, m):
@@ -45,7 +44,9 @@ class classification_NN(nn.Module):
         output = data
         for i, layer in enumerate(self.layers):
             output = self.activation(self.bn[i](layer(output)))
-        return torch.softmax(self.layer_out(self.dropout(output)), dim =1)
+        #return torch.softmax(self.layer_out(self.dropout(output)), dim =1)
+        #return torch.softmax(self.layer_out((output)), dim =1)
+        return self.layer_out(output)
     
     
     def binary_acc(predicted_logic, labels):
