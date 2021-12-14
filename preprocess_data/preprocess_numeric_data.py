@@ -17,8 +17,8 @@ class Preprocess_numeric_data:
             column = self.dataset[name]
             
             # # Normalize the data
-            # self.dataset[name] = (column-column.mean())/column.std()
-            # self.dataset[name] = self.dataset[name].fillna(0)
+            self.dataset[name] = (column-column.mean())/column.std()
+            self.dataset[name] = self.dataset[name].fillna(0)
             
             
             # Fill missing data with column mean

@@ -47,13 +47,13 @@ class Preprocess_text_data:
         '''
         tokens = ""
         if header is not None:
-            tokens = header + " [SEP] "
+            tokens = header + " "
         
         words = sentence.split(' ')
         for word in words:
             if word not in stopwords:
-                tokens += word + " [SEP] "
-        return tokens
+                tokens += word + " "
+        return tokens + "[SEP] "
     
     
     def build_datset_for_bi_encoder(self, textdata):
