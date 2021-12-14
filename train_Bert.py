@@ -8,7 +8,7 @@ import torch
 import pandas as pd
 
 from transformers import AdamW, get_linear_schedule_with_warmup, BertConfig
-from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset, WeightedRandomSampler
 from transformers import BertForSequenceClassification
 from tensorboardX import SummaryWriter
 from sklearn.metrics import f1_score
@@ -236,17 +236,26 @@ def prepare_data_loader(dataset,batch_size, random_sampler=False):
             dataset.text_segment_ids
             )
     
-    if random_sampler:
-        sampler = RandomSampler(tensor_dataset)
-    else:
-        sampler = SequentialSampler(tensor_dataset)
-        
-    return DataLoader(
-        tensor_dataset,
-        sampler = sampler,
-        batch_size = batch_size,
-        drop_last = True
-    )
+    if not random_sampler:
+        return DataLoader(tensor_dataset,
+                        sampler = SequentialSampler(tensor_dataset),
+                        batch_size = batch_size,
+                        drop_last = True)
+     
+    # handle unbalanced data
+    positive = dataset.labels.sum()
+    counts = len(dataset.labels)
+    negative = counts - positive
+    weights = dataset.labels / positive + (1-dataset.labels) / negative
+    
+    sampler = WeightedRandomSampler(weights.tolist(), counts)
+    #sampler = RandomSampler(tensor_dataset)
+    
+    return DataLoader(tensor_dataset,
+                    sampler = sampler,
+                    batch_size = batch_size,
+                    drop_last = True
+                )
 
 def calculate_accuracy(actual_labels, logits):
     _, predicted_labels = torch.max(logits, dim = 1)    
