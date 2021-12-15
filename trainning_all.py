@@ -23,7 +23,7 @@ if __name__=="__main__":
     parser.add_argument("--run_id", type=int, default=42)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--max_len", type=int, default=512)
-    parser.add_argument("--lr", type=float, default=3e-5)
+    parser.add_argument("--lr", type=float, default=2e-5)
     parser.add_argument("--n_epochs", type=int, default=4)
     parser.add_argument("--save_preprocessed_data", type=bool, default=True)
     parser.add_argument("--data_was_preprocessed", type=bool, default=True)

@@ -213,7 +213,7 @@ def train_valid_test_BertMatcher(trainset,
     f1score = f1_score(testing_labels, testing_prediction, zero_division=1, average="micro")
     print("average testing f1 score:", f1score)
     output = add_record(output, today_date, "bert", 0, 0, f1score, "avg testing f1", data_name)
-    pd.DataFrame(testing_prediction).to_csv("bert_test_output_" & data_name & ".csv")
+    pd.DataFrame(testing_prediction).to_csv("bert_test_output_" + data_name + ".csv")
     # number_of_sample = (len(test_dataloader) * batch_size)
     # avg_test_accuracy = num_of_test_match / number_of_sample
     # print("  Average test accuracy: {0:.5f}".format(avg_test_accuracy))
