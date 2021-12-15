@@ -148,4 +148,4 @@ class Preprocess_text_data:
         return combined_text_data, segment_ids
 
     def build_attention_mask(self, tensor):
-        return tensor==0
+        return (tensor!=0).int()
