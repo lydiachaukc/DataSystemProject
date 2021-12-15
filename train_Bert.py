@@ -248,8 +248,8 @@ def prepare_data_loader(dataset,batch_size, random_sampler=False):
     negative = counts - positive
     weights = dataset.labels / positive + (1-dataset.labels) / negative
     
-    sampler = WeightedRandomSampler(weights.tolist(), counts)
-    #sampler = RandomSampler(tensor_dataset)
+    # sampler = WeightedRandomSampler(weights.tolist(), counts)
+    sampler = RandomSampler(tensor_dataset)
     
     return DataLoader(tensor_dataset,
                     sampler = sampler,
