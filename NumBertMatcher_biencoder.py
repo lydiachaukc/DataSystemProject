@@ -74,4 +74,3 @@ class NumBertMatcher_biencoder(BertForSequenceClassification):
         return {'loss': loss,
                 'similarity': similiarity
                 }
-    
