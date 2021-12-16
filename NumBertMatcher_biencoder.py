@@ -11,7 +11,7 @@ from torch.nn import CrossEntropyLoss
 from transformers import BertForSequenceClassification
 from classification_NN import classification_NN
 from transformers.modeling_outputs import SequenceClassifierOutput
-from torch.nn import CosineSimilarity
+from torch.nn import CosineSimilarity, BCELoss
 
 class NumBertMatcher_biencoder(BertForSequenceClassification):
     """
@@ -21,20 +21,17 @@ class NumBertMatcher_biencoder(BertForSequenceClassification):
     def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
-        self.classifier = classification_NN(
-            inputs_dimension = config.num_input_dimension + config.text_input_dimension,
-            num_hidden_lyr = config.num_hidden_lyr,
-            dropout_prob = 0.8,
-            bn = nn.BatchNorm1d(config.num_input_dimension)
-            )
+        # self.classifier = classification_NN(
+        #     inputs_dimension = config.num_input_dimension + config.text_input_dimension,
+        #     num_hidden_lyr = config.num_hidden_lyr,
+        #     dropout_prob = 0.8,
+        #     bn = nn.BatchNorm1d(config.num_input_dimension)
+        #     )
         self.norm_num_batch = nn.BatchNorm1d(config.num_input_dimension)
         self.init_weights()
         
-        similarity_method = "cos"
-        if (similarity_method == "cos"):
-            self.calculate_similiarity = CosineSimilarity()
-        else:
-            self.calculate_similiarity = self.calculate_similiarity
+        self.calculate_similiarity = CosineSimilarity()
+        self.loss_fct  = BCELoss()
     
     def forward(
             self,
@@ -64,24 +61,17 @@ class NumBertMatcher_biencoder(BertForSequenceClassification):
         combined_features_B = torch.cat((cls_output_B, numerical_featuresB), dim=1)
         
         # Calculate similiary of paired data
-        similarity = self.calculate_similiarity(
+        similiarity = self.calculate_similiarity(
             combined_features_A,
             combined_features_B).view(-1,1)
-        similarity = self.norm_num_batch(similarity)
         
         # Calculate the logits and loss
-        logits = self.classifier(similarity)
         if labels is not None:
-            loss_fct  = CrossEntropyLoss()
-            labels = labels.long()
-            loss = loss_fct(logits.view(-1, self.num_labels), labels.view(-1))
+            loss = self.loss_fct(similiarity, labels.float().view(-1,1))
         else:
             loss=None
         
-        return SequenceClassifierOutput(
-            loss=loss,
-            logits=logits
-            )
+        return {'loss': loss,
+                'similarity': similiarity
+                }
     
-    def calculate_difference(tensorA, tensorB):
-        return tensorA - tensorB

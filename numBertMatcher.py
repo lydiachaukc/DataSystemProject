@@ -19,7 +19,7 @@ class NumBertMatcher_crossencoder(BertForSequenceClassification):
     reference BertForTokenClassification class in the hugging face library
     https://huggingface.co/transformers/_modules/transformers/modeling_bert.html#BertForSequenceClassification
     """
-    def __init__(self, config, similarity_method = "cos"):
+    def __init__(self, config):
         super().__init__(config)
         self.num_labels = config.num_labels
         

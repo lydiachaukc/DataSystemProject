@@ -19,7 +19,7 @@ from build_dataset import build_tensor_dataset
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--task", type=str, default="dirty_dblp_scholar")
+    parser.add_argument("--task", type=str, default="dirty_amazon_itunes")
     parser.add_argument("--run_id", type=int, default=42)
     parser.add_argument("--batch_size", type=int, default=8)
     parser.add_argument("--max_len", type=int, default=512)
@@ -34,8 +34,8 @@ if __name__=="__main__":
     parser.add_argument("--da", type=str, default=None)
     parser.add_argument("--dk", type=str, default=None)
     parser.add_argument("--output_directory", type=str, default="results")
-    parser.add_argument("--running_NumBertMatcher_crossencoder", type=bool, default=True)
-    parser.add_argument("--running_NumBertMatcher_biencoder", type=bool, default=False)
+    parser.add_argument("--running_NumBertMatcher_crossencoder", type=bool, default=False)
+    parser.add_argument("--running_NumBertMatcher_biencoder", type=bool, default=True)
     parser.add_argument("--running_BertMatcher", type=bool, default=False)
     hp = parser.parse_args()
 

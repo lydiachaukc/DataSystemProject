@@ -12,6 +12,7 @@ import datetime as datetime
 from transformers import AdamW, get_linear_schedule_with_warmup, BertConfig
 from torch.utils.data import DataLoader, RandomSampler, TensorDataset
 from tensorboardX import SummaryWriter
+from sklearn.metrics import f1_score
 
 from utils import format_time, setup_cuda, add_record
 from NumBertMatcher_biencoder import NumBertMatcher_biencoder
@@ -31,8 +32,8 @@ def train_valid_test_NumBertMatcher_bicoder(trainset,
     # Set output format
     output = pd.read_csv(output_directory + "/result.csv")
     today_date = str(pd.Timestamp.today().date())
-    summary_writer = SummaryWriter(output_directory + "/" + today_date)
-    summary_writer.add_text('NumBerMatcher', 'Recording loss data for NumBerMatcher biencoder', 0)
+    # summary_writer = SummaryWriter(output_directory + "/" + today_date)
+    # summary_writer.add_text('NumBerMatcher', 'Recording loss data for NumBerMatcher biencoder', 0)
     
     device = setup_cuda()
     
@@ -70,7 +71,12 @@ def train_valid_test_NumBertMatcher_bicoder(trainset,
         print('Training biencoder ...')
         epoch_t0 = time.time()
         
-        total_train_loss = 0
+        total_train_loss = 0 
+        
+        training_prediction = []
+        training_labels = []
+        validating_prediction = []
+        validating_labels = []
         for step, batch in enumerate(train_dataloader):
             if step % 100 == 0 and not step == 0:
                 elapsed = str(datetime.timedelta(seconds=int(round((time.time() - epoch_t0)))))
@@ -109,18 +115,14 @@ def train_valid_test_NumBertMatcher_bicoder(trainset,
             
             
             # recording loss result
-            loss_per_sample = loss.item()/ batch_size
-            print("training step:", step, " loss:", loss_per_sample)
-            summary_writer.add_scalar("training ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "training", data_name)
-        
+            training_prediction += calculate_prediction(result["similarity"]).tolist()
+            training_labels += b_labels.tolist()
+            print("training step:", step, "f1 score", f1_score(training_labels, training_prediction, zero_division=1, average="micro"))
             
-        # recording loss result
-        avg_train_loss = total_train_loss / (len(train_dataloader) * batch_size)
-        print("  Average training loss: {0:.2f}".format(avg_train_loss))
-        summary_writer.add_scalar("total training ", scalar_value = avg_train_loss , global_step = epoch)
-        output = add_record(output, today_date, "numbert", 0, 0, avg_train_loss, "average training", data_name)
-    
+        # recording result
+        f1score = f1_score(training_labels, training_prediction, zero_division=1, average="micro")
+        print("average training f1 score:", f1score)
+        output = add_record(output, today_date, "numbert", (epoch+1), 0, f1score, "avg training f1", data_name)   
     
         '''
         Validating model
@@ -150,28 +152,24 @@ def train_valid_test_NumBertMatcher_bicoder(trainset,
     
             total_valid_loss += result['loss'].item()
             
-            loss_per_sample = result['loss'].item() / batch_size
-            
-            
             # recording loss result
-            print("validation step:", step, " loss:", loss_per_sample)
-            summary_writer.add_scalar("validating ", scalar_value = loss_per_sample , global_step = step)
-            output = add_record(output, today_date, "numbert", epoch, step, loss_per_sample, "validation", data_name)
-          
-            
-        # recording loss result
-        avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
-        print("  Average valid loss: {0:.2f}".format(avg_valid_loss))
-        summary_writer.add_scalar("total validating ", scalar_value = avg_valid_loss , global_step = epoch)
-        output = add_record(output, today_date, "numbert biencoder", 0, 0, avg_train_loss, "average validation", data_name)
+            validating_prediction += calculate_prediction(result["similarity"]).tolist()
+            validating_labels += b_labels.tolist()
         
+        
+        # recording result
+        f1score = f1_score(validating_labels, validating_prediction, zero_division=1, average="micro")
+        print("average validating f1 score:", f1score)
+        output = add_record(output, today_date, "numbert", (epoch+1), 0, f1score, "avg validating f1", data_name)       
     
     '''
     Testing model
     '''
     model.eval()
     
-    total_valid_loss = 0
+    total_test_loss = 0
+    testing_prediction = []
+    testing_labels = []
     for step, batch in enumerate(test_dataloader):
         
         b_input_ids = batch[0].to(device)
@@ -191,16 +189,18 @@ def train_valid_test_NumBertMatcher_bicoder(trainset,
                 token_type_ids  = b_input_segment
                 )
 
-        total_valid_loss += result['loss'].item()
+        total_test_loss += result['loss'].item()
+        testing_prediction += calculate_prediction(result["similarity"]).tolist()
+        testing_labels += b_labels.tolist()        
     
     # recording loss result
-    avg_valid_loss = total_valid_loss / (len(valid_dataloader) * batch_size)
-    print("  Average testing loss: {0:.2f}".format(avg_valid_loss))
-    summary_writer.add_scalar("total testing ", scalar_value = avg_valid_loss , global_step = epoch)
-    output = add_record(output, today_date, "numbert biencoder", 0, 0, avg_train_loss, "average testing", data_name)
+    f1score = f1_score(testing_labels, testing_prediction, zero_division=1, average="micro")
+    print("average testing f1 score:", f1score)
+    output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg testing f1", data_name)
+    pd.DataFrame(testing_prediction).to_csv("numbert_test_output_" + data_name + ".csv")
 
     
-    summary_writer.close()
+    # summary_writer.close()
     output.to_csv(output_directory + "/result.csv" , index=False)
 
 
@@ -231,4 +231,9 @@ def build_bert_config(num_input_dimension, lm, num_hidden_lyr):
     config.num_input_dimension = num_input_dimension
     config.num_hidden_lyr = num_hidden_lyr
     config.lm = lm
+    config.attention_probs_dropout_prob = 0.1
+    config.hidden_dropout_prob = 0.1
     return config
+
+def calculate_prediction(similarity):
+    return (similarity >0.5).int()

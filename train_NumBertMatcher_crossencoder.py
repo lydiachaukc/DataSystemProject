@@ -114,7 +114,7 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
         # recording result
         f1score = f1_score(training_labels, training_prediction, zero_division=1, average="micro")
         print("average training f1 score:", f1score)
-        output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg training f1", data_name)
+        output = add_record(output, today_date, "numbert", (epoch+1), 0, f1score, "avg training f1", data_name)
         #number_of_sample = (len(train_dataloader) * batch_size)
         #avg_train_accuracy = num_of_train_match / number_of_sample
         #print("  Average training accuracy: {0:.5f}".format(avg_train_accuracy))
@@ -164,7 +164,7 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
         # recording result
         f1score = f1_score(validating_labels, validating_prediction, zero_division=1, average="micro")
         print("average validating f1 score:", f1score)
-        output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg validating f1", data_name)
+        output = add_record(output, today_date, "numbert", (epoch+1), 0, f1score, "avg validating f1", data_name)
         # number_of_sample = (len(valid_dataloader) * batch_size)
         # avg_valid_accuracy = num_of_valid_match / number_of_sample
         # print("  Average valid accuracy: {0:.5f}".format(avg_valid_accuracy))
@@ -213,7 +213,7 @@ def train_valid_test_NumBertMatcher_crossencoder(trainset,
     # recording result
     f1score = f1_score(testing_labels, testing_prediction, zero_division=1, average="micro")
     print("average testing f1 score:", f1score)
-    output = add_record(output, today_date, "numbert", 0, 0, f1score, "avg testing f1", data_name)
+    output = add_record(output, today_date, "numbert", epochs, 0, f1score, "avg testing f1", data_name)
     pd.DataFrame(testing_prediction).to_csv("numbert_test_output_" + data_name + ".csv")
     # number_of_sample = (len(test_dataloader) * batch_size)
     # avg_test_accuracy = num_of_test_match / number_of_sample
@@ -268,6 +268,8 @@ def build_bert_config(num_input_dimension, lm, num_hidden_lyr):
     config.num_input_dimension = num_input_dimension
     config.num_hidden_lyr = num_hidden_lyr
     config.lm = lm
+    config.attention_probs_dropout_prob = 0.2
+    config.hidden_dropout_prob = 0.1
     return config
 
 # def calculate_f1_score(labels, prediction):
